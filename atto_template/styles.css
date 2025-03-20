@@ -1,0 +1,55 @@
+/* Styles for template plugin */
+.atto_template_selector {
+    width: 100%;
+    margin: 1em 0;
+}
+
+.atto_template_option {
+    display: block;
+    margin: 0.5em;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.atto_template_option:hover {
+    background-color: #f5f5f5;
+}
+
+.atto_template_option.selected {
+    background-color: #def2f8;
+    border-color: #0f6fc5;
+}
+
+.atto_template_name {
+    font-weight: bold;
+    padding: 5px;
+}
+
+.atto_template_submit, 
+.atto_template_cancel {
+    padding: 0.5em 1em;
+    margin: 0.5em;
+    border-radius: 4px;
+}
+
+.atto_template_submit {
+    background-color: #0f6fc5;
+    color: white;
+    border: 1px solid #0f6fc5;
+}
+
+.atto_template_cancel {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+.atto_template_submit:hover {
+    background-color: #0c5aa3;
+}
+
+.atto_template_cancel:hover {
+    background-color: #e5e5e5;
+} 

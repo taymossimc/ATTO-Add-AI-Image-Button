@@ -1,0 +1,9 @@
+{
+    "moodle-atto_template-button": {
+        "requires": [
+            "moodle-editor_atto-plugin",
+            "moodle-core-notification-dialogue",
+            "handlebars"
+        ]
+    }
+} 
