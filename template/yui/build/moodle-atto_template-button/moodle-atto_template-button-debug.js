@@ -1,3 +1,5 @@
+YUI.add('moodle-atto_template-button', function (Y, NAME) {
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -36,10 +38,12 @@
 var COMPONENTNAME = 'atto_template',
     LOGNAME = 'atto_template',
     TEMPLATES = {
-        TILES: 'tiles'
+        TILES: 'tiles',
+        OUTCOMES: 'outcomes'
     },
     TEMPLATE_NAMES = {
-        'tiles': 'tiles'
+        'tiles': 'tiles',
+        'outcomes': 'outcomes'
     },
     CSS = {
         INPUTSUBMIT: 'atto_template_submit',
@@ -71,14 +75,18 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
     _templates: null,
 
     initializer: function() {
+        Y.log('Initializing atto_template button', 'debug', LOGNAME);
+        
         // Add the template button first.
         this.addButton({
-            icon: 'icon',
-            iconComponent: COMPONENTNAME,
-            buttonName: 'template',
+            icon: 'e/template',
+            iconComponent: 'core',
+            buttonName: 'template',  // This must match what's in the toolbar config
             callback: this._displayDialogue,
-            callbackArgs: 'template'
+            title: 'insertemplate'
         });
+        
+        Y.log('Template button added with name: template', 'debug', LOGNAME);
         
         // Load templates from server when initializing.
         this._loadTemplates();
@@ -91,8 +99,10 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
      * @private
      */
     _loadTemplates: function() {
+        Y.log('Loading template data from server', 'debug', LOGNAME);
         this._templates = {
-            'tiles': M.cfg.wwwroot + '/lib/editor/atto/plugins/template/templates/tiles.html'
+            'tiles': M.cfg.wwwroot + '/lib/editor/atto/plugins/template/templates/tiles.html',
+            'outcomes': M.cfg.wwwroot + '/lib/editor/atto/plugins/template/templates/outcomes.html'
         };
     },
 
@@ -103,9 +113,12 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
      * @private
      */
     _displayDialogue: function() {
+        Y.log('Displaying template selection dialogue', 'debug', LOGNAME);
+        
         // Store the current selection.
         this._currentSelection = this.get('host').getSelection();
         if (this._currentSelection === false) {
+            Y.log('No selection found, cannot display dialogue', 'warn', LOGNAME);
             return;
         }
 
@@ -121,6 +134,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
 
         // Display the dialogue.
         dialogue.show();
+        Y.log('Template dialogue shown', 'debug', LOGNAME);
     },
 
     /**
@@ -131,11 +145,16 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
      * @return {Node} The content to place in the dialogue.
      */
     _getDialogueContent: function() {
+        Y.log('Building dialogue content', 'debug', LOGNAME);
+        
         var template = Y.Handlebars.compile(
             '<div class="atto_template_selector">' +
                 '<div>' +
                     '<div class="atto_template_option" data-template="{{TILES}}">' +
                         '<div class="atto_template_name">{{tilestemplate}}</div>' +
+                    '</div>' +
+                    '<div class="atto_template_option" data-template="{{OUTCOMES}}">' +
+                        '<div class="atto_template_name">Outcomes Template</div>' +
                     '</div>' +
                 '</div>' +
                 '<div class="mdl-align">' +
@@ -150,6 +169,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
         var content = Y.Node.create(template({
             CSS: CSS,
             TILES: TEMPLATES.TILES,
+            OUTCOMES: TEMPLATES.OUTCOMES,
             tilestemplate: M.util.get_string('tilestemplate', COMPONENTNAME),
             insertbutton: M.util.get_string('insertemplate', COMPONENTNAME),
             cancel: M.util.get_string('cancel', COMPONENTNAME)
@@ -161,6 +181,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
                 e.preventDefault();
                 content.all(SELECTORS.TEMPLATES).removeClass('selected');
                 node.addClass('selected');
+                Y.log('Template selected: ' + node.getData('template'), 'debug', LOGNAME);
             }, this);
         }, this);
 
@@ -168,6 +189,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
         content.one('.' + CSS.INPUTSUBMIT).on('click', function(e) {
             e.preventDefault();
             var templateName = content.one(SELECTORS.TEMPLATES + '.selected').getData('template');
+            Y.log('Inserting template: ' + templateName, 'debug', LOGNAME);
             this._insertTemplate(templateName);
             this.getDialogue({
                 focusAfterHide: null
@@ -177,6 +199,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
         // Handle cancel button.
         content.one('.' + CSS.INPUTCANCEL).on('click', function(e) {
             e.preventDefault();
+            Y.log('Template insertion cancelled', 'debug', LOGNAME);
             this.getDialogue({
                 focusAfterHide: null
             }).hide();
@@ -193,17 +216,22 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
      * @private
      */
     _insertTemplate: function(templateName) {
+        Y.log('Processing template insertion: ' + templateName, 'debug', LOGNAME);
         var templateContent = '';
 
         // Get the correct template content based on the selected template.
         if (templateName === TEMPLATES.TILES) {
             templateContent = this._getTilesTemplate();
+        } else if (templateName === TEMPLATES.OUTCOMES) {
+            templateContent = this._getOutcomesTemplate();
+            Y.log('Using outcomes template', 'debug', LOGNAME);
         }
 
         // Set the selection and insert the template content.
         this.get('host').setSelection(this._currentSelection);
         this.get('host').insertContentAtFocusPoint(templateContent);
         this.markUpdated();
+        Y.log('Template inserted successfully', 'debug', LOGNAME);
     },
 
     /**
@@ -214,6 +242,7 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
      * @return {String} The template content
      */
     _getTilesTemplate: function() {
+        Y.log('Returning tiles template content', 'debug', LOGNAME);
         return '<h3>Overview</h3>\n' +
                '<div class="block-theme-widget container">\n' +
                '    <div class="theme-cards row">\n' +
@@ -293,5 +322,29 @@ Y.namespace('M.atto_template').Button = Y.Base.create('button', Y.M.editor_atto.
                '    </div>\n' +
                '</div>\n' +
                '<h3>Let\'s Get Started!</h3>';
+    },
+    
+    /**
+     * Returns the outcomes template content.
+     *
+     * @method _getOutcomesTemplate
+     * @private
+     * @return {String} The template content
+     */
+    _getOutcomesTemplate: function() {
+        Y.log('Returning outcomes template content', 'debug', LOGNAME);
+        return '<div class="outcomes-container">' +
+               '    <h3>Learning Outcomes</h3>' +
+               '    <div class="outcomes-list">' +
+               '        <p>After completing this module, you will be able to:</p>' +
+               '        <ul>' +
+               '            <li>Outcome 1</li>' +
+               '            <li>Outcome 2</li>' +
+               '            <li>Outcome 3</li>' +
+               '        </ul>' +
+               '    </div>' +
+               '</div>';
     }
-}); 
+});
+
+}, '@VERSION@', {"requires": ["moodle-editor_atto-plugin"]}); 

@@ -3,7 +3,10 @@
         "requires": [
             "moodle-editor_atto-plugin",
             "moodle-core-notification-dialogue",
-            "handlebars"
+            "handlebars",
+            "event",
+            "escape",
+            "io-base"
         ]
     }
 } 

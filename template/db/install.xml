@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="lib/editor/atto/plugins/template/db" VERSION="2025040605" COMMENT="XMLDB file for Moodle atto_template plugin">
+    <TABLES>
+        <TABLE NAME="atto_template" COMMENT="Stores configuration for atto_template plugin">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="dummy" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Placeholder field"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+        </TABLE>
+    </TABLES>
+</XMLDB> 

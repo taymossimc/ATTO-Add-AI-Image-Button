@@ -58,6 +58,7 @@ function atto_template_params_for_js() {
  * @return array
  */
 function atto_template_setup_toolbar_params(array $params) {
+    // The button must be called 'template' (without atto_ prefix) in the toolbar configuration
     $grouptemplate = array('template');
 
     // Add the template button to the first group (format group).

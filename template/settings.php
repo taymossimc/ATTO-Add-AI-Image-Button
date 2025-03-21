@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto template - Version file
+ * Settings for the atto_template plugin.
  *
  * @package    atto_template
  * @copyright  2025 CHURCHx
@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025032000;        // The current plugin version (Date: YYYYMMDDXX)
-$plugin->requires  = 2022041900;        // Requires this Moodle version (Moodle 4.0)
-$plugin->component = 'atto_template';   // Full name of the plugin (used for diagnostics)
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.0.0'; 
+if (is_callable('error_log')) {
+    error_log('[ATTO_TEMPLATE_DEBUG] settings.php loaded');
+}
+
+// No actual settings, but this file is needed for Moodle to properly load the plugin. 
