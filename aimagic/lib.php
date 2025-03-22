@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto template plugin lib.
+ * Atto AI Magic plugin lib.
  *
- * @package    atto_template
+ * @package    atto_aimagic
  * @copyright  2025 CHURCHx
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,19 +27,22 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Initialise the js strings required for this module.
  */
-function atto_template_strings_for_js() {
+function atto_aimagic_strings_for_js() {
     global $PAGE;
 
     $strings = array(
         'pluginname',
-        'insertemplate',
+        'inserttextprompt',
         'dialogtitle',
-        'tilestemplate',
+        'promptlabel',
+        'generatebutton',
         'cancel',
-        'template'
+        'processing',
+        'error',
+        'useprompt'
     );
 
-    $PAGE->requires->strings_for_js($strings, 'atto_template');
+    $PAGE->requires->strings_for_js($strings, 'atto_aimagic');
 }
 
 /**
@@ -47,8 +50,17 @@ function atto_template_strings_for_js() {
  *
  * @return array of additional params to pass to javascript init function for this module.
  */
-function atto_template_params_for_js() {
-    return array();
+function atto_aimagic_params_for_js() {
+    global $CFG;
+    
+    $config = get_config('atto_aimagic');
+    
+    return array(
+        'apikey' => !empty($config->apikey) ? $config->apikey : '',
+        'agentid' => !empty($config->agentid) ? $config->agentid : '',
+        'baseurl' => !empty($config->baseurl) ? $config->baseurl : 'https://api.openai.com',
+        'timeout' => !empty($config->timeout) ? $config->timeout : 30
+    );
 }
 
 /**
@@ -57,11 +69,11 @@ function atto_template_params_for_js() {
  * @param array $params
  * @return array
  */
-function atto_template_setup_toolbar_params(array $params) {
-    // The button must be called 'template' (without atto_ prefix) in the toolbar configuration
-    $grouptemplate = array('template');
+function atto_aimagic_setup_toolbar_params(array $params) {
+    // The button must be called 'aimagic' (without atto_ prefix) in the toolbar configuration
+    $groupaimagic = array('aimagic');
 
-    // Add the template button to the first group (format group).
+    // Add the aimagic button to the first group (format group).
     if (!isset($params['groups'])) {
         $params['groups'] = array();
     }
@@ -70,7 +82,7 @@ function atto_template_setup_toolbar_params(array $params) {
         $params['groups'][0] = array();
     }
     
-    $params['groups'][0] = array_merge($params['groups'][0], $grouptemplate);
+    $params['groups'][0] = array_merge($params['groups'][0], $groupaimagic);
     
     return $params;
 } 

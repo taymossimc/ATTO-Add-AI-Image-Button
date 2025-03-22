@@ -15,24 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto template plugin upgrade script.
+ * Atto AI Magic - Version file
  *
- * @package    atto_template
+ * @package    atto_aimagic
  * @copyright  2025 CHURCHx
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Upgrade the atto template plugin.
- *
- * @param int $oldversion the version we are upgrading from
- * @return bool result
- */
-function xmldb_atto_template_upgrade($oldversion) {
-    global $DB;
-    
-    // Nothing specific to do right now, just return true.
-    return true;
-} 
+$plugin->version   = 2025040600;        // The current plugin version (Date: YYYYMMDDXX)
+$plugin->requires  = 2022041900;        // Requires this Moodle version (Moodle 4.0)
+$plugin->component = 'atto_aimagic';    // Full name of the plugin (used for diagnostics)
+$plugin->maturity  = MATURITY_ALPHA;
+$plugin->release   = '1.0.0'; 

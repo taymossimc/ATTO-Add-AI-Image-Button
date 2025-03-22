@@ -15,17 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings for the atto_template plugin.
+ * Upgrade script for atto_aimagic.
  *
- * @package    atto_template
+ * @package    atto_aimagic
  * @copyright  2025 CHURCHx
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-if (is_callable('error_log')) {
-    error_log('[ATTO_TEMPLATE_DEBUG] settings.php loaded');
-}
-
-// No actual settings, but this file is needed for Moodle to properly load the plugin. 
+/**
+ * Upgrade function for atto_aimagic.
+ *
+ * @param int $oldversion The old version of the plugin.
+ * @return bool
+ */
+function xmldb_atto_aimagic_upgrade($oldversion) {
+    global $DB;
+    
+    $dbman = $DB->get_manager();
+    
+    if ($oldversion < 2025040601) {
+        // Define the table structure for usage logging if needed in future upgrades.
+        // Placeholder for future upgrades.
+        
+        // Save upgrade marker.
+        upgrade_plugin_savepoint(true, 2025040601, 'atto', 'aimagic');
+    }
+    
+    return true;
+} 

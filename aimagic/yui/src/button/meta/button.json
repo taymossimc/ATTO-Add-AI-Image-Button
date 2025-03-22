@@ -1,12 +1,10 @@
 {
-    "moodle-atto_template-button": {
+    "moodle-atto_aimagic-button": {
         "requires": [
             "moodle-editor_atto-plugin",
             "moodle-core-notification-dialogue",
-            "handlebars",
-            "event",
-            "escape",
-            "io-base"
+            "io-base",
+            "json-parse"
         ]
     }
 } 

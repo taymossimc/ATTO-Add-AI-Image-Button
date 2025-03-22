@@ -1,7 +1,7 @@
 {
-    "name": "moodle-atto_template-button",
+    "name": "moodle-atto_aimagic-button",
     "builds": {
-        "moodle-atto_template-button": {
+        "moodle-atto_aimagic-button": {
             "jsfiles": [
                 "button.js"
             ]

@@ -42,4 +42,4 @@ This plugin is licensed under the [GNU GPL v3 or later](http://www.gnu.org/copyl
 
 ## Credits
 
-Developed by Tay Moss CHURCHx (2025) imc@tucc.ca
+Developed by Tay Moss for CHURCHx (2025) imc@tucc.ca
