@@ -1,3 +1,5 @@
+YUI.add('moodle-atto_aimagic-button', function (Y, NAME) {
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -313,7 +315,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
                         '<div class="toggle-switch">' +
                             '<input type="checkbox" id="{{elementid}}_insertion_mode_toggle" class="toggle-input">' +
                             '<label for="{{elementid}}_insertion_mode_toggle" class="toggle-label"></label>' +
-                    '</div>' +
+                        '</div>' +
                         '<div class="toggle-labels">' +
                             '<span class="replace-label selected">{{replaceContent}}</span>' +
                             '<span class="add-label">{{addContent}}</span>' +
@@ -356,6 +358,24 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
         
         if (DEBUG) {
             console.log(LOGNAME + ': Getting selection content');
+            
+            // Debug toggle container existence
+            console.log(LOGNAME + ': Checking insertion-mode-container', {
+                exists: !!content.one('.insertion-mode-container'),
+                html: content.one('.insertion-mode-container') ? content.one('.insertion-mode-container').get('outerHTML') : 'not found'
+            });
+            
+            // Check toggle-switch-container
+            console.log(LOGNAME + ': Checking toggle-switch-container', {
+                exists: !!content.one('.toggle-switch-container'),
+                html: content.one('.toggle-switch-container') ? content.one('.toggle-switch-container').get('outerHTML') : 'not found'
+            });
+            
+            // Check toggle-switch
+            console.log(LOGNAME + ': Checking toggle-switch', {
+                exists: !!content.one('.toggle-switch'),
+                html: content.one('.toggle-switch') ? content.one('.toggle-switch').get('outerHTML') : 'not found'
+            });
         }
         
         if (this._currentSelection && typeof this._currentSelection.toString === 'function') {
@@ -367,14 +387,6 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
                 if (DEBUG) {
                     console.log(LOGNAME + ': Selection content: ', safeSubstring(selectedContent, 0, 100) + 
                         (selectedContent.length > 100 ? '...' : ''));
-                }
-                
-                // Show the insertion mode toggle if there's selected content
-                if (selectedContent.length > 0) {
-                    var toggleDiv = content.one('.insertion-mode-toggle');
-                    if (toggleDiv) {
-                        toggleDiv.setStyle('display', 'block');
-                    }
                 }
             } catch (e) {
                 if (DEBUG) {
@@ -448,60 +460,45 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
             if (DEBUG) {
                 console.log(LOGNAME + ': Cancel button clicked');
             }
-            // Clear the stored reference
             this._dialogueContent = null;
-            
             this.getDialogue({
                 focusAfterHide: null
             }).hide();
         }, this);
         
-        // Handle toggle switch logic
-        var toggleSwitch = content.one('#' + this.get('host').get('elementid') + '_insertion_mode_toggle');
+        // Set up the toggle functionality
+        var toggleInput = content.one('#' + this.get('host').get('elementid') + '_insertion_mode_toggle');
         var replaceLabel = content.one('.replace-label');
         var addLabel = content.one('.add-label');
         
-        // Add event listener to toggle switch
-        if (toggleSwitch) {
-            toggleSwitch.on('change', function(e) {
-                if (toggleSwitch.get('checked')) {
-                    // Add mode
-                    if (replaceLabel) {
-                        replaceLabel.removeClass('selected');
-                    }
-                    if (addLabel) {
-                        addLabel.addClass('selected');
-                    }
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': Toggle changed to Add mode');
-                        this._addDebugMessage(content, 'Insertion mode changed to Add');
-                    }
-                } else {
-                    // Replace mode
-                    if (replaceLabel) {
-                        replaceLabel.addClass('selected');
-                    }
-                    if (addLabel) {
-                        addLabel.removeClass('selected');
-                    }
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': Toggle changed to Replace mode');
-                        this._addDebugMessage(content, 'Insertion mode changed to Replace');
-                    }
+        toggleInput.on('change', function(e) {
+            if (e.target.get('checked')) {
+                replaceLabel.removeClass('selected');
+                addLabel.addClass('selected');
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Toggle changed to Add mode');
+                    this._addDebugMessage(content, 'Insertion mode changed to Add');
                 }
-            }, this);
-        }
+            } else {
+                replaceLabel.addClass('selected');
+                addLabel.removeClass('selected');
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Toggle changed to Replace mode');
+                    this._addDebugMessage(content, 'Insertion mode changed to Replace');
+                }
+            }
+        }, this);
         
         if (DEBUG) {
             this._addDebugMessage(content, 'Dialogue content created successfully');
         }
-
+        
         // Make sure we're returning a YUI Node
         if (content instanceof Y.Node) {
             if (DEBUG) {
                 console.log(LOGNAME + ': Returning YUI Node');
             }
-        return content;
+            return content;
         } else {
             if (DEBUG) {
                 console.error(LOGNAME + ': Content is not a YUI Node, converting');
@@ -657,38 +654,99 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
                 timeout: this._apiSettings.timeout
             },
             on: {
-                success: function(event, id, response) {
+                start: function() {
                     if (DEBUG) {
-                        console.log(LOGNAME + ': API response received', response);
+                        console.log(LOGNAME + ': API request started');
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request started');
+                        }
+                    }
+                },
+                success: function(id, response) {
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': API request succeeded', {
+                            responseLength: response && response.responseText ? response.responseText.length : 0,
+                            statusCode: response ? response.status : 'unknown'
+                        });
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request succeeded: Status ' + 
+                                (response ? response.status : 'unknown'));
+                        }
                     }
                     
                     try {
-                        var jsonResponse = JSON.parse(response);
-                        if (jsonResponse.error) {
-                            if (DEBUG) {
-                                console.error(LOGNAME + ': API error: ' + jsonResponse.error);
+                        if (!response || !response.responseText) {
+                            throw new Error('Empty response received');
+                        }
+                        
+                        var data = JSON.parse(response.responseText);
+                        
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': API response parsed', {
+                                success: !!data.success,
+                                hasContent: !!data.content,
+                                error: data.error || 'none'
+                            });
+                            
+                            if (content) {
+                                self._addDebugMessage(content, 'API response parsed: ' + 
+                                    (data.success ? 'Success' : 'Failed'));
                             }
-                            self._handleApiError(jsonResponse.error);
+                        }
+                        
+                        if (data.success && data.content) {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Inserting content', {
+                                    contentLength: data.content.length
+                                });
+                                
+                                if (content) {
+                                    self._addDebugMessage(content, 'Content received, length: ' + data.content.length);
+                                }
+                            }
+                            self._insertContent(data.content, selectedContent);
                         } else {
+                            var errorMsg = data.error || 'Unknown API error';
                             if (DEBUG) {
-                                console.log(LOGNAME + ': API response processed successfully');
+                                console.error(LOGNAME + ': API error', errorMsg);
+                                
+                                if (content) {
+                                    self._addDebugMessage(content, 'API error: ' + errorMsg);
+                                }
                             }
-                            self._insertContent(jsonResponse.response, jsonResponse.addContent);
+                            self._handleApiError(errorMsg);
                         }
                     } catch (e) {
                         if (DEBUG) {
                             console.error(LOGNAME + ': Error parsing API response', e);
+                            console.log('Response text:', response ? safeSubstring(response.responseText, 0, 500) : 'none');
+                            
+                            if (content) {
+                                self._addDebugMessage(content, 'Error parsing response: ' + e.message);
+                            }
                         }
-                        self._handleApiError('Error processing API response');
+                        self._handleApiError('Error processing response: ' + e.message);
                     }
                 },
-                failure: function(event, id, response) {
+                failure: function(id, response) {
+                    var statusMsg = response ? 'Status: ' + response.status : 'No status';
                     if (DEBUG) {
-                        console.error(LOGNAME + ': API request failed', response);
+                        console.error(LOGNAME + ': API request failed', {
+                            id: id,
+                            statusCode: response ? response.status : 'unknown',
+                            statusText: response ? response.statusText : 'unknown'
+                        });
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request failed: ' + statusMsg);
+                        }
                     }
-                    self._handleApiError('API request failed');
+                    self._handleApiError('Network error. ' + statusMsg);
                 }
-            }
+            },
+            timeout: this._apiSettings.timeout * 1000
         });
     },
     
@@ -1008,13 +1066,4 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
     }
 });
 
-/**
- * Initialization function for the AI Magic YUI module
- * 
- * @method init
- * @param {Object} config Configuration parameters
- * @static
- */
-Y.namespace('M.atto_aimagic').Button.init = function(config) {
-    return true;
-}; 
+}, '@VERSION@', {"requires": ["moodle-editor_atto-plugin", "moodle-core-notification-dialogue", "io-base", "json-parse"]}); 

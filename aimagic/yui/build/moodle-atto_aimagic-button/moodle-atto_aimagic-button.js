@@ -313,7 +313,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
                         '<div class="toggle-switch">' +
                             '<input type="checkbox" id="{{elementid}}_insertion_mode_toggle" class="toggle-input">' +
                             '<label for="{{elementid}}_insertion_mode_toggle" class="toggle-label"></label>' +
-                    '</div>' +
+                        '</div>' +
                         '<div class="toggle-labels">' +
                             '<span class="replace-label selected">{{replaceContent}}</span>' +
                             '<span class="add-label">{{addContent}}</span>' +
@@ -501,7 +501,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
             if (DEBUG) {
                 console.log(LOGNAME + ': Returning YUI Node');
             }
-        return content;
+            return content;
         } else {
             if (DEBUG) {
                 console.error(LOGNAME + ': Content is not a YUI Node, converting');
@@ -552,7 +552,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
     },
 
     /**
-     * Call the OpenAI Agents API with the prompt and selected content
+     * Call the OpenAI Assistants API with the prompt and selected content
      *
      * @method _callOpenAI
      * @param {String} promptText The user's prompt/request
@@ -577,6 +577,31 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
                 contentExists: !!content,
                 dialogueExists: !!dialogue
             });
+            
+            // Double check API settings
+            console.log(LOGNAME + ': API settings check (detailed)', {
+                apiKeyType: typeof this._apiSettings.apiKey,
+                apiKeyEmpty: this._apiSettings.apiKey === '',
+                apiKeyLength: this._apiSettings.apiKey ? this._apiSettings.apiKey.length : 0,
+                assistantIdType: typeof this._apiSettings.assistantId,
+                assistantIdEmpty: this._apiSettings.assistantId === '',
+                assistantIdLength: this._apiSettings.assistantId ? this._apiSettings.assistantId.length : 0,
+                apiSettings: JSON.stringify(this._apiSettings)
+            });
+            
+            // Try to fetch apikey from host
+            try {
+                var apiKey = this.get('apikey');
+                var assistantId = this.get('assistantid');
+                console.log(LOGNAME + ': Direct config access', {
+                    directApiKeyType: typeof apiKey,
+                    directApiKeyLength: apiKey ? apiKey.length : 0,
+                    directAssistantIdType: typeof assistantId,
+                    directAssistantIdLength: assistantId ? assistantId.length : 0
+                });
+            } catch (e) {
+                console.error(LOGNAME + ': Error checking direct config', e);
+            }
         }
         
         // Check for API settings
@@ -600,95 +625,175 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
             return;
         }
         
-        // Get the entire editor content if there's no selection
-        var editorContent = '';
-        if (!selectedContent) {
-            try {
-                var host = this.get('host');
-                editorContent = ensureString(host.getHTML());
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Got editor content', {
-                        length: editorContent.length,
-                        sample: safeSubstring(editorContent, 0, 100) + (editorContent.length > 100 ? '...' : '')
-                    });
-                }
-            } catch (e) {
-                if (DEBUG) {
-                    console.error(LOGNAME + ': Failed to get editor content', e);
-                }
+        // Check if we should be in replace or add mode
+        var insertionMode = 'replace'; // Default is replace
+        if (content) {
+            var toggleSwitch = content.one('#' + this.get('host').get('elementid') + '_insertion_mode_toggle');
+            
+            if (toggleSwitch && toggleSwitch.get('checked')) {
+                insertionMode = 'add';
             }
-        } else {
-            editorContent = selectedContent;
+            
+            if (DEBUG) {
+                console.log(LOGNAME + ': Insertion mode', {
+                    mode: insertionMode,
+                    toggleChecked: toggleSwitch ? toggleSwitch.get('checked') : 'not found'
+                });
+                
+                this._addDebugMessage(content, 'Using insertion mode: ' + insertionMode);
+            }
         }
         
-        // Create the prompt with context
-        var fullPrompt = '';
-        if (editorContent && editorContent.trim()) {
-            fullPrompt = 'Context:\n\n' + editorContent + '\n\nUser Request:\n' + promptText + 
+        // Store the insertion mode for later use
+        this._insertionMode = insertionMode;
+        
+        // Create the prompt with context if available
+        var prompt = promptText;
+        if (selectedContent) {
+            prompt = 'Here is the existing content:\n\n' + selectedContent + '\n\n' + promptText + 
                 '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
         } else {
-            fullPrompt = 'User Request:\n' + promptText + 
-                '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
+            prompt = promptText + '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
         }
         
         if (DEBUG) {
             console.log(LOGNAME + ': Final prompt prepared', {
-                length: fullPrompt.length,
-                withContext: !!editorContent
+                length: prompt.length,
+                withSelection: !!selectedContent
             });
             
             if (content) {
-                this._addDebugMessage(content, 'Sending API request with ' + 
-                    (editorContent ? 'editor content as context' : 'no context'));
+                this._addDebugMessage(content, 'Sending API request...');
             }
         }
         
         // Use YUI IO to make the API request
+        var postData = {
+            sesskey: M.cfg.sesskey,
+            action: 'generate',
+            contextid: this.get('contextid'),
+            prompt: prompt,
+            apikey: this._apiSettings.apiKey,
+            assistantid: this._apiSettings.assistantId,
+            baseurl: this._apiSettings.baseUrl,
+            timeout: this._apiSettings.timeout
+        };
+        
+        if (DEBUG) {
+            console.log(LOGNAME + ': API request data prepared', {
+                hasPrompt: !!postData.prompt,
+                promptLength: postData.prompt ? postData.prompt.length : 0,
+                hasApiKey: !!postData.apikey,
+                apiKeyLength: postData.apikey ? postData.apikey.length : 0,
+                hasAssistantId: !!postData.assistantid,
+                assistantIdLength: postData.assistantid ? postData.assistantid.length : 0,
+                url: M.cfg.wwwroot + '/lib/editor/atto/plugins/aimagic/ajax.php'
+            });
+            
+            if (content) {
+                this._addDebugMessage(content, 'API request data prepared: ' + 
+                    (postData.apikey ? 'API key (' + postData.apikey.substring(0, 3) + '...): ' + postData.apikey.length + ' chars' : 'No API key') + 
+                    (postData.assistantid ? ', Assistant ID: ' + postData.assistantid : ', No Assistant ID'));
+            }
+        }
+        
         Y.io(M.cfg.wwwroot + '/lib/editor/atto/plugins/aimagic/ajax.php', {
             method: 'POST',
-            data: {
-                sesskey: M.cfg.sesskey,
-                action: 'generate',
-                contextid: this.get('contextid'),
-                prompt: fullPrompt,
-                apikey: this._apiSettings.apiKey,
-                assistantid: this._apiSettings.assistantId,
-                baseurl: this._apiSettings.baseUrl,
-                timeout: this._apiSettings.timeout
-            },
+            data: postData,
             on: {
-                success: function(event, id, response) {
+                start: function() {
                     if (DEBUG) {
-                        console.log(LOGNAME + ': API response received', response);
+                        console.log(LOGNAME + ': API request started');
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request started');
+                        }
+                    }
+                },
+                success: function(id, response) {
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': API request succeeded', {
+                            responseLength: response && response.responseText ? response.responseText.length : 0,
+                            statusCode: response ? response.status : 'unknown'
+                        });
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request succeeded: Status ' + 
+                                (response ? response.status : 'unknown'));
+                        }
                     }
                     
                     try {
-                        var jsonResponse = JSON.parse(response);
-                        if (jsonResponse.error) {
-                            if (DEBUG) {
-                                console.error(LOGNAME + ': API error: ' + jsonResponse.error);
+                        if (!response || !response.responseText) {
+                            throw new Error('Empty response received');
+                        }
+                        
+                        var data = JSON.parse(response.responseText);
+                        
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': API response parsed', {
+                                success: !!data.success,
+                                hasContent: !!data.content,
+                                error: data.error || 'none'
+                            });
+                            
+                            if (content) {
+                                self._addDebugMessage(content, 'API response parsed: ' + 
+                                    (data.success ? 'Success' : 'Failed'));
                             }
-                            self._handleApiError(jsonResponse.error);
+                        }
+                        
+                        if (data.success && data.content) {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Inserting content', {
+                                    contentLength: data.content.length
+                                });
+                                
+                                if (content) {
+                                    self._addDebugMessage(content, 'Content received, length: ' + data.content.length);
+                                }
+                            }
+                            self._insertContent(data.content, selectedContent);
                         } else {
+                            var errorMsg = data.error || 'Unknown API error';
                             if (DEBUG) {
-                                console.log(LOGNAME + ': API response processed successfully');
+                                console.error(LOGNAME + ': API error', errorMsg);
+                                
+                                if (content) {
+                                    self._addDebugMessage(content, 'API error: ' + errorMsg);
+                                }
                             }
-                            self._insertContent(jsonResponse.response, jsonResponse.addContent);
+                            self._handleApiError(errorMsg);
                         }
                     } catch (e) {
                         if (DEBUG) {
                             console.error(LOGNAME + ': Error parsing API response', e);
+                            console.log('Response text:', response ? safeSubstring(response.responseText, 0, 500) : 'none');
+                            
+                            if (content) {
+                                self._addDebugMessage(content, 'Error parsing response: ' + e.message);
+                            }
                         }
-                        self._handleApiError('Error processing API response');
+                        self._handleApiError('Error processing response: ' + e.message);
                     }
                 },
-                failure: function(event, id, response) {
+                failure: function(id, response) {
+                    var statusMsg = response ? 'Status: ' + response.status : 'No status';
                     if (DEBUG) {
-                        console.error(LOGNAME + ': API request failed', response);
+                        console.error(LOGNAME + ': API request failed', {
+                            id: id,
+                            statusCode: response ? response.status : 'unknown',
+                            statusText: response ? response.statusText : 'unknown'
+                        });
+                        
+                        if (content) {
+                            self._addDebugMessage(content, 'API request failed: ' + statusMsg);
+                        }
                     }
-                    self._handleApiError('API request failed');
+                    self._handleApiError('Network error. ' + statusMsg);
                 }
-            }
+            },
+            timeout: this._apiSettings.timeout * 1000
         });
     },
     
@@ -853,7 +958,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
      */
     _insertContent: function(content, addContent) {
         if (DEBUG) {
-            console.log(LOGNAME + ': Inserting content, add mode: ' + (addContent ? 'true' : 'false'));
+            console.log(LOGNAME + 'Inserting content, add mode: ' + (addContent ? 'true' : 'false'));
         }
         
         var host = this.get('host');
@@ -865,143 +970,94 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
         
         if (typeof content !== 'string') {
             if (DEBUG) {
-                console.warn(LOGNAME + ': Content is not a string, attempting to convert');
+                console.warn(LOGNAME + 'Content is not a string, attempting to convert');
             }
             try {
                 content = content.toString();
             } catch (e) {
                 if (DEBUG) {
-                    console.error(LOGNAME + ': Failed to convert content to string', e);
+                    console.error(LOGNAME + 'Failed to convert content to string', e);
                 }
                 content = '';
             }
         }
         
-        // Append the AI-assisted icon SVG at the end of the content
-        var aiAssistantIconUrl = M.cfg.wwwroot + '/lib/editor/atto/plugins/aimagic/pix/ai_assisted_button.svg';
-        content = content + ' <img src="' + aiAssistantIconUrl + '" alt="AI-generated content" title="This content was generated by AI" class="ai-assisted-content-badge" style="width: 20px; height: 20px; vertical-align: middle; margin-left: 5px;" />';
-        
         if (DEBUG) {
-            console.log(LOGNAME + ': Content prepared for insertion with AI icon, length: ' + content.length);
+            console.log(LOGNAME + 'Content prepared for insertion, length: ' + content.length);
         }
 
         // Make sure any dialog is hidden first to prevent focus issues
         this.getDialogue({focusAfterHide: false}).hide();
         
         try {
-            // Focus the editor
+            // Most reliable method - insertAtFocusPoint works across Moodle versions
             host.focus();
             
             if (addContent) {
                 // For add content mode, simply insert at focus point
                 host.insertContentAtFocusPoint(content);
                 if (DEBUG) {
-                    console.log(LOGNAME + ': Content added at cursor position');
+                    console.log(LOGNAME + 'Content added at cursor position');
                 }
             } else {
                 // For replace content mode
                 var selection = host.getSelection();
-                
                 if (selection && selection.toString().length > 0) {
                     // We have a selection to replace
                     try {
-                        // First try the standard Atto method with range
-                        var range = host.getSelectionRange();
-                        if (range) {
-                            // Delete the current selection
-                            range.deleteContents();
-                            
-                            // Create a fragment with our content
-                            var tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = content;
-                            var fragment = document.createDocumentFragment();
-                            while (tempDiv.firstChild) {
-                                fragment.appendChild(tempDiv.firstChild);
-                            }
-                            
-                            // Insert the fragment
-                            range.insertNode(fragment);
-                            
-                            if (DEBUG) {
-                                console.log(LOGNAME + ': Content replaced selection using range');
-                            }
-                        } else {
-                            throw new Error('No valid range found');
+                        // Use execCommand as the most reliable cross-browser method
+                        document.execCommand('insertText', false, content);
+                        if (DEBUG) {
+                            console.log(LOGNAME + 'Content replaced selection using execCommand');
                         }
                     } catch (e) {
                         if (DEBUG) {
-                            console.error(LOGNAME + ': Range replacement failed, trying execCommand', e);
+                            console.error(LOGNAME + 'execCommand failed, trying alternative', e);
                         }
-                        
-                        try {
-                            // Try execCommand as fallback
-                            document.execCommand('insertHTML', false, content);
+                        // Fallback to manually clearing and inserting
+                        host.setSelection(selection);
+                        var range = host.getSelectionRange();
+                        if (range) {
+                            host.insertContentAtFocusPoint(content);
                             if (DEBUG) {
-                                console.log(LOGNAME + ': Content replaced using execCommand');
+                                console.log(LOGNAME + 'Content replaced using fallback method');
                             }
-                        } catch (e2) {
+                        } else {
+                            // Last resort
+                            host.insertContentAtFocusPoint(content);
                             if (DEBUG) {
-                                console.error(LOGNAME + ': execCommand failed too, using setHTML', e2);
-                            }
-                            
-                            // If that fails too, just replace the entire content
-                            if (typeof host.setHTML === 'function') {
-                                host.setHTML(content);
-                                if (DEBUG) {
-                                    console.log(LOGNAME + ': Content replaced using setHTML');
-                                }
-                            } else {
-                                // Final fallback
-                                host.insertContentAtFocusPoint(content);
-                                if (DEBUG) {
-                                    console.log(LOGNAME + ': Content inserted at cursor (final fallback)');
-                                }
+                                console.log(LOGNAME + 'Content inserted at cursor (no selection range)');
                             }
                         }
                     }
                 } else {
-                    // If no selection, replace entire editor content
-                    if (typeof host.setHTML === 'function') {
-                        host.setHTML(content);
-                        if (DEBUG) {
-                            console.log(LOGNAME + ': Replaced entire editor content');
-                        }
-                    } else {
-                        // Fallback if setHTML is not available
-                        host.insertContentAtFocusPoint(content);
-                        if (DEBUG) {
-                            console.log(LOGNAME + ': Content inserted at cursor (no selection)');
-                        }
+                    // No selection, just insert at cursor
+                    host.insertContentAtFocusPoint(content);
+                    if (DEBUG) {
+                        console.log(LOGNAME + 'Content inserted at cursor (no selection)');
                     }
                 }
             }
             this.markUpdated();
         } catch (error) {
             if (DEBUG) {
-                console.error(LOGNAME + ': Error inserting content:', error);
+                console.error(LOGNAME + 'Error inserting content:', error);
             }
             
             // Ultimate fallback - try the simplest possible approach
             try {
                 if (DEBUG) {
-                    console.log(LOGNAME + ': Trying ultimate fallback insertion');
+                    console.log(LOGNAME + 'Trying ultimate fallback insertion');
                 }
                 host.focus();
-                if (!addContent && typeof host.setHTML === 'function') {
-                    host.setHTML(content);
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': Ultimate fallback using setHTML');
-                    }
-                } else {
-                    host.insertContentAtFocusPoint(content);
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': Ultimate fallback using insertContentAtFocusPoint');
-                    }
-                }
+                host.insertContentAtFocusPoint(content);
                 this.markUpdated();
+                if (DEBUG) {
+                    console.log(LOGNAME + 'Ultimate fallback insertion completed');
+                }
             } catch (e) {
                 if (DEBUG) {
-                    console.error(LOGNAME + ': Ultimate fallback insertion also failed:', e);
+                    console.error(LOGNAME + 'Ultimate fallback insertion also failed:', e);
                 }
             }
         }

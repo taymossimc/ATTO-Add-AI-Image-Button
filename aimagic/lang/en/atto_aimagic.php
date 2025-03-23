@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'atto_aimagic', language 'en'.
+ * Atto AI Magic - English language strings
  *
  * @package    atto_aimagic
  * @copyright  2025 CHURCHx
@@ -23,22 +23,44 @@
  */
 
 $string['pluginname'] = 'AI Magic';
-$string['settings'] = 'AI Magic settings';
+$string['settings'] = 'AI Magic Settings';
 $string['inserttextprompt'] = 'Insert AI-generated content';
-$string['dialogtitle'] = 'What can I create for you?';
-$string['promptlabel'] = 'Your request:';
-$string['generatebutton'] = 'Generate Content';
+$string['dialogtitle'] = 'AI Magic';
+$string['promptlabel'] = 'What would you like to create?';
+$string['generatebutton'] = 'Generate';
 $string['cancel'] = 'Cancel';
-$string['processing'] = 'Generating content, please wait...';
-$string['error'] = 'An error occurred. Please try again.';
-$string['useprompt'] = 'Use this prompt';
+$string['processing'] = 'Generating content...';
+$string['error'] = 'Error';
+$string['useprompt'] = 'Use as prompt';
+$string['replacecontent'] = 'Replace selected content';
+$string['addcontent'] = 'Add to selected content';
+$string['insertionmodelabel'] = 'Insertion Mode';
 
-// Settings page strings
+// Settings strings
 $string['apikey'] = 'OpenAI API Key';
-$string['apikey_desc'] = 'Your OpenAI API key for accessing the Agents API';
-$string['agentid'] = 'OpenAI Agent ID';
-$string['agentid_desc'] = 'The ID of the OpenAI Agent to use for generating content';
-$string['baseurl'] = 'API Base URL';
+$string['apikey_desc'] = 'Your OpenAI API key for authentication';
+$string['assistantid'] = 'OpenAI Assistant ID';
+$string['assistantid_desc'] = 'The OpenAI Assistant ID to use for generating content';
+$string['baseurl'] = 'OpenAI API Base URL';
 $string['baseurl_desc'] = 'The base URL for the OpenAI API (change only if using a custom endpoint)';
 $string['timeout'] = 'Request Timeout';
-$string['timeout_desc'] = 'The number of seconds before a request to the OpenAI API times out'; 
+$string['timeout_desc'] = 'Maximum time in seconds to wait for the API response';
+
+// Test connection strings
+$string['testconnectionheading'] = 'Test Connection';
+$string['testconnection'] = 'Test Connection to OpenAI';
+$string['testconnection_success'] = 'Connection successful!';
+$string['testconnection_error'] = 'Connection failed:';
+$string['testconnection_testing'] = 'Testing connection...';
+$string['testconnection_assistant_valid'] = 'Assistant ID is valid';
+$string['testconnection_assistant_invalid'] = 'Assistant ID is invalid or not found';
+$string['testconnection_apikey_missing'] = 'API Key is missing or invalid';
+$string['testconnection_assistant_missing'] = 'Assistant ID is missing';
+$string['test_success_popup'] = 'Test Successful: You are Connected to OpenAI';
+$string['test_error_popup'] = 'Test Failed: Check Keys';
+
+// Privacy
+$string['privacy:metadata:atto_aimagic'] = 'The Atto AI Magic plugin does not store any personal data, but does transmit user-entered content to the OpenAI API for processing.';
+$string['privacy:metadata:atto_aimagic:prompt'] = 'The text prompt entered by the user is sent to the OpenAI API for content generation.';
+$string['privacy:metadata:atto_aimagic:selection'] = 'If text is selected when using AI Magic, this selection is sent to the OpenAI API for context.';
+$string['privacy:metadata:atto_aimagic:userid'] = 'Your user ID is not sent to the external API but is logged in Moodle\'s system logs when using the AI Magic feature.'; 

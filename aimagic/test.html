@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Magic Dialog Test</title>
+    <style>
+        .form-group { margin-bottom: 15px; }
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        .toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-label {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-label:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        .toggle-input:checked + .toggle-label {
+            background-color: #2196F3;
+        }
+        .toggle-input:checked + .toggle-label:before {
+            transform: translateX(26px);
+        }
+        .toggle-labels {
+            display: flex;
+            flex-direction: column;
+        }
+        .toggle-labels span {
+            opacity: 0.6;
+        }
+        .toggle-labels span.selected {
+            font-weight: bold;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dialog Test</h1>
+    
+    <div class="atto_aimagic_form">
+        <div class="form-group">
+            <label for="prompt">What would you like to create?</label>
+            <textarea class="form-control" id="prompt" rows="5"></textarea>
+        </div>
+        <div class="form-group insertion-mode-container">
+            <label>Insertion Mode</label>
+            <div class="toggle-switch-container">
+                <div class="toggle-switch">
+                    <input type="checkbox" id="insertion_mode_toggle" class="toggle-input">
+                    <label for="insertion_mode_toggle" class="toggle-label"></label>
+                </div>
+                <div class="toggle-labels">
+                    <span class="replace-label selected">Replace Content</span>
+                    <span class="add-label">Add to Content</span>
+                </div>
+            </div>
+        </div>
+        <div class="processing text-center" style="display: none;">
+            <p>Generating content...</p>
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="buttons">
+            <br/>
+            <button class="btn btn-primary">Generate</button>
+            <button class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+    
+    <script>
+        // Simple toggle functionality
+        document.getElementById('insertion_mode_toggle').addEventListener('change', function(e) {
+            var replaceLabel = document.querySelector('.replace-label');
+            var addLabel = document.querySelector('.add-label');
+            
+            if (e.target.checked) {
+                replaceLabel.classList.remove('selected');
+                addLabel.classList.add('selected');
+            } else {
+                replaceLabel.classList.add('selected');
+                addLabel.classList.remove('selected');
+            }
+        });
+    </script>
+</body>
+</html> 

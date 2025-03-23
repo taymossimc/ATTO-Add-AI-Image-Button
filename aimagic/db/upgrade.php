@@ -31,7 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_atto_aimagic_upgrade($oldversion) {
-    global $DB;
+    global $DB, $CFG;
     
     $dbman = $DB->get_manager();
     
@@ -41,6 +41,55 @@ function xmldb_atto_aimagic_upgrade($oldversion) {
         
         // Save upgrade marker.
         upgrade_plugin_savepoint(true, 2025040601, 'atto', 'aimagic');
+    }
+    
+    if ($oldversion < 2025040718) {
+        // Migrate the 'agentid' setting to 'assistantid'
+        $oldvalue = get_config('atto_aimagic', 'agentid');
+        if (!empty($oldvalue)) {
+            // Save the old value to the new setting
+            set_config('assistantid', $oldvalue, 'atto_aimagic');
+            
+            // Log the migration for debugging
+            error_log('AI Magic plugin: Migrated agentid setting to assistantid: ' . $oldvalue);
+        }
+        
+        // Save upgrade marker
+        upgrade_plugin_savepoint(true, 2025040718, 'atto', 'aimagic');
+    }
+    
+    if ($oldversion < 2025040726) {
+        // Update the AI assisted icon SVG in the file system.
+        $fs = get_file_storage();
+        $context = context_system::instance();
+        
+        // Path to the SVG file in the plugin.
+        $svgpath = $CFG->dirroot . '/lib/editor/atto/plugins/aimagic/pix/ai_assisted_button.svg';
+        
+        // Check if the file exists.
+        if (file_exists($svgpath)) {
+            // Prepare file record.
+            $fileinfo = [
+                'contextid' => $context->id,
+                'component' => 'atto_aimagic',
+                'filearea' => 'icon',
+                'itemid' => 0,
+                'filepath' => '/',
+                'filename' => 'ai_assisted_button.svg',
+            ];
+            
+            // Delete existing file if one exists.
+            if ($fs->file_exists($context->id, 'atto_aimagic', 'icon', 0, '/', 'ai_assisted_button.svg')) {
+                $file = $fs->get_file($context->id, 'atto_aimagic', 'icon', 0, '/', 'ai_assisted_button.svg');
+                $file->delete();
+            }
+            
+            // Create the file.
+            $fs->create_file_from_pathname($fileinfo, $svgpath);
+        }
+
+        // Aimagic savepoint reached.
+        upgrade_plugin_savepoint(true, 2025040726, 'atto', 'aimagic');
     }
     
     return true;
