@@ -15,17 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto AI Magic - Version file
+ * Strings for component 'atto_template', language 'fr_ca'.
  *
- * @package    atto_aimagic
+ * @package    atto_template
  * @copyright  2025 CHURCHx
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version   = 2025040926;        // The current plugin version (Date: YYYYMMDDXX)
-$plugin->requires  = 2019111803;        // Requires this Moodle version
-$plugin->component = 'atto_aimagic';    // Full name of the plugin (used for diagnostics)
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.6.17'; 
+$string['pluginname'] = 'Insérer un modèle';
+$string['insertemplate'] = 'Insérer un modèle';
+$string['settings'] = 'Paramètres des modèles';
+$string['browse'] = 'Parcourir';
+$string['cancel'] = 'Annuler';
+$string['dialogtitle'] = 'Sélectionner un modèle';
+$string['tiles'] = 'Modèle de tuiles';
+$string['tilestemplate'] = 'Modèle de tuiles de mise en page de cartes';
+$string['privacy:metadata'] = 'Le plugin atto_template ne stocke aucune donnée personnelle.';
+$string['template'] = 'Modèle'; 

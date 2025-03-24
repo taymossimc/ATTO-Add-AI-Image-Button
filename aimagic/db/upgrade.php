@@ -92,5 +92,68 @@ function xmldb_atto_aimagic_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025040726, 'atto', 'aimagic');
     }
     
+    if ($oldversion < 2025040923) {
+        // Check and fix the Atto toolbar configuration
+        $toolbar = get_config('editor_atto', 'toolbar');
+        
+        // Log the current toolbar config for debugging
+        error_log('AI Magic plugin: Current Atto toolbar configuration: ' . $toolbar);
+        
+        // Check if our button is properly registered in the toolbar
+        if (strpos($toolbar, 'aimagic') === false) {
+            // Find a good group to add it to (insert, format, or other)
+            $groups = explode("\n", $toolbar);
+            $insertgroup = null;
+            
+            foreach ($groups as $i => $group) {
+                if (strpos($group, 'insert') === 0) {
+                    $insertgroup = $i;
+                    break;
+                }
+            }
+            
+            // If we found the insert group, add our button to it
+            if ($insertgroup !== null) {
+                $groups[$insertgroup] = $groups[$insertgroup] . ', aimagic';
+                $newtoolbar = implode("\n", $groups);
+                
+                // Update the configuration
+                set_config('toolbar', $newtoolbar, 'editor_atto');
+                error_log('AI Magic plugin: Added aimagic to Atto toolbar configuration: ' . $newtoolbar);
+            } else {
+                error_log('AI Magic plugin: Could not find insert group in Atto toolbar configuration');
+            }
+        } else {
+            error_log('AI Magic plugin: aimagic already in Atto toolbar configuration');
+        }
+        
+        // Aimagic savepoint reached
+        upgrade_plugin_savepoint(true, 2025040923, 'atto', 'aimagic');
+    }
+    
+    if ($oldversion < 2025040924) {
+        // Reduce console logging when not in debug mode
+        error_log('AI Magic plugin: Updated console logging to reduce output in production mode');
+        
+        // Aimagic savepoint reached
+        upgrade_plugin_savepoint(true, 2025040924, 'atto', 'aimagic');
+    }
+    
+    if ($oldversion < 2025040925) {
+        // Update both standard and minified JavaScript files with consistent console logging
+        error_log('AI Magic plugin: Updated both JavaScript files with consistent console logging');
+        
+        // Aimagic savepoint reached
+        upgrade_plugin_savepoint(true, 2025040925, 'atto', 'aimagic');
+    }
+    
+    if ($oldversion < 2025040926) {
+        // Security fix: Prevent API keys from being logged to the console
+        error_log('AI Magic plugin: Security fix - API keys are no longer logged to the browser console');
+        
+        // Aimagic savepoint reached
+        upgrade_plugin_savepoint(true, 2025040926, 'atto', 'aimagic');
+    }
+    
     return true;
 } 

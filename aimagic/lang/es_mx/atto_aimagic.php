@@ -32,12 +32,15 @@ $string['cancel'] = 'Cancelar';
 $string['processing'] = 'Generando contenido, por favor espera...';
 $string['error'] = 'Ha ocurrido un error. Por favor intenta de nuevo.';
 $string['useprompt'] = 'Usar este mensaje';
+$string['replacecontent'] = 'Reemplazar contenido seleccionado';
+$string['addcontent'] = 'Añadir al contenido seleccionado';
+$string['insertionmodelabel'] = 'Modo de Inserción';
 
 // Settings page strings
 $string['apikey'] = 'Clave API de OpenAI';
 $string['apikey_desc'] = 'Tu clave API de OpenAI para acceder a la API de Agentes';
-$string['agentid'] = 'ID de Agente de OpenAI';
-$string['agentid_desc'] = 'El ID del Agente de OpenAI que se utilizará para generar contenido';
+$string['assistantid'] = 'ID de Asistente de OpenAI';
+$string['assistantid_desc'] = 'El ID del Asistente de OpenAI que se utilizará para generar contenido';
 $string['baseurl'] = 'URL Base de la API';
 $string['baseurl_desc'] = 'La URL base para la API de OpenAI (cambiar solo si se utiliza un punto final personalizado)';
 $string['timeout'] = 'Tiempo de espera de la solicitud';
@@ -53,6 +56,8 @@ $string['testconnection_assistant_valid'] = 'ID del Asistente es válido';
 $string['testconnection_assistant_invalid'] = 'ID del Asistente es inválido o no se encontró';
 $string['testconnection_apikey_missing'] = 'La Clave API no existe o es inválida';
 $string['testconnection_assistant_missing'] = 'Falta el ID del Asistente';
+$string['test_success_popup'] = 'Prueba Exitosa: Estás Conectado a OpenAI';
+$string['test_error_popup'] = 'Prueba Fallida: Revisa tus Claves';
 
 // Privacy
 $string['privacy'] = 'Privacidad';

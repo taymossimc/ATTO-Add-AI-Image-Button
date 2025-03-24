@@ -26,15 +26,17 @@ This plugin adds an AI-powered content generation button to Moodle's ATTO text e
 
 1. Go to Site Administration > Plugins > Text editors > Atto HTML editor > AI Magic
 2. Enter your OpenAI API Key
-3. Enter your OpenAI Agent ID
+3. Enter your OpenAI Assistant ID
 4. Adjust other settings as needed
+5. (Optional) Test you connection with the test button.
 
 ## Usage
 
 1. Click on the magic wand icon in the ATTO editor toolbar
-2. Type your request in the prompt field
-3. Click "Generate Content"
-4. The AI-generated content will be inserted at the cursor position or replace selected text
+2. Choose whether you want to replace the content in the editing window or add to it.
+3. Type your request in the prompt field
+4. Click "Generate Content"
+5. The AI-generated content will be inserted at the cursor position or replace selected text
 
 ## License
 
@@ -42,4 +44,5 @@ This plugin is licensed under the [GNU GPL v3 or later](http://www.gnu.org/copyl
 
 ## Credits
 
-Developed by Tay Moss CHURCHx (2025) imc@tucc.ca
+Developed by Tay Moss for CHURCHx (2025) imc@tucc.ca
+

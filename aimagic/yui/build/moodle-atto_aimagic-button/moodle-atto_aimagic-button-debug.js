@@ -194,9 +194,8 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
             
             // Direct access to config values
             console.log(LOGNAME + ': Direct config access', {
-                apikey: this.get('apikey'),
-                apikey_type: typeof this.get('apikey'),
                 apikey_length: this.get('apikey') ? this.get('apikey').length : 0,
+                apikey_exists: !!this.get('apikey'),
                 assistantid: this.get('assistantid'),
                 assistantid_type: typeof this.get('assistantid'),
                 assistantid_length: this.get('assistantid') ? this.get('assistantid').length : 0,
@@ -303,208 +302,286 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
      * @return {Node} The content to place in the dialogue.
      */
     _getDialogueContent: function() {
-        var template = Y.Handlebars.compile(
-            '<div class="atto_aimagic_form">' +
-                '<div class="form-group">' +
-                    '<label for="{{elementid}}_atto_aimagic_prompt">{{promptlabel}}</label>' +
-                    '<textarea class="form-control {{CSS.INPUTPROMPT}}" id="{{elementid}}_atto_aimagic_prompt" rows="5"></textarea>' +
-                '</div>' +
-                '<div class="form-group insertion-mode-container">' +
-                    '<label>{{insertionModelabel}}</label>' +
-                    '<div class="toggle-switch-container">' +
-                        '<div class="toggle-switch">' +
-                            '<input type="checkbox" id="{{elementid}}_insertion_mode_toggle" class="toggle-input">' +
-                            '<label for="{{elementid}}_insertion_mode_toggle" class="toggle-label"></label>' +
+        try {
+            var template = Y.Handlebars.compile(
+                '<div class="atto_aimagic_form">' +
+                    '<div class="form-group">' +
+                        '<label for="{{elementid}}_atto_aimagic_prompt">{{promptlabel}}</label>' +
+                        '<textarea class="form-control {{CSS.INPUTPROMPT}}" id="{{elementid}}_atto_aimagic_prompt" rows="5"></textarea>' +
+                    '</div>' +
+                    '<div class="form-group insertion-mode-container">' +
+                        '<label>{{insertionModelabel}}</label>' +
+                        '<div class="toggle-switch-container">' +
+                            '<div class="toggle-switch">' +
+                                '<input type="checkbox" id="{{elementid}}_insertion_mode_toggle" class="toggle-input">' +
+                                '<label for="{{elementid}}_insertion_mode_toggle" class="toggle-label"></label>' +
                         '</div>' +
-                        '<div class="toggle-labels">' +
-                            '<span class="replace-label selected">{{replaceContent}}</span>' +
-                            '<span class="add-label">{{addContent}}</span>' +
+                            '<div class="toggle-labels">' +
+                                '<span class="replace-label selected">{{replaceContent}}</span>' +
+                                '<span class="add-label">{{addContent}}</span>' +
+                            '</div>' +
                         '</div>' +
                     '</div>' +
-                '</div>' +
-                '<div class="{{CSS.PROCESSING}} text-center" style="display: none;">' +
-                    '<p>{{processing}}</p>' +
-                    '<div class="spinner-border" role="status">' +
-                        '<span class="sr-only">Loading...</span>' +
+                    '<div class="{{CSS.PROCESSING}} text-center" style="display: none;">' +
+                        '<p>{{processing}}</p>' +
+                        '<div class="spinner-border" role="status">' +
+                            '<span class="sr-only">Loading...</span>' +
+                        '</div>' +
                     '</div>' +
-                '</div>' +
-                '<div class="mdl-align">' +
-                    '<br/>' +
-                    '<button class="btn btn-primary {{CSS.INPUTSUBMIT}}">{{generatebutton}}</button>' +
-                    ' ' +
-                    '<button class="btn btn-secondary {{CSS.INPUTCANCEL}}">{{cancel}}</button>' +
-                '</div>' +
-                '<div class="debug-info" style="margin-top: 20px; display: ' + (DEBUG ? 'block' : 'none') + ';">' +
-                    '<h5>Debug Information</h5>' +
-                    '<div class="debug-log" style="background: #f5f5f5; padding: 10px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>' +
-                '</div>' +
-            '</div>'
-        );
+                    '<div class="mdl-align">' +
+                        '<br/>' +
+                        '<button class="btn btn-primary {{CSS.INPUTSUBMIT}}">{{generatebutton}}</button>' +
+                        ' ' +
+                        '<button class="btn btn-secondary {{CSS.INPUTCANCEL}}">{{cancel}}</button>' +
+                    '</div>' +
+                    '<div class="debug-info" style="margin-top: 20px; display: none;">' +
+                        '<h5>Debug Information</h5>' +
+                        '<div class="debug-log" style="background: #f5f5f5; padding: 10px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>' +
+                    '</div>' +
+                '</div>'
+            );
 
-        var content = Y.Node.create(template({
-            elementid: this.get('host').get('elementid'),
-            CSS: CSS,
-            promptlabel: M.util.get_string('promptlabel', COMPONENTNAME),
-            insertionModelabel: M.util.get_string('insertionmodelabel', COMPONENTNAME) || 'Insertion Mode',
-            generatebutton: M.util.get_string('generatebutton', COMPONENTNAME),
-            cancel: M.util.get_string('cancel', COMPONENTNAME),
-            processing: M.util.get_string('processing', COMPONENTNAME),
-            replaceContent: M.util.get_string('replacecontent', COMPONENTNAME) || 'Replace Content',
-            addContent: M.util.get_string('addcontent', COMPONENTNAME) || 'Add Content'
-        }));
-
-        // Get any selected text to pre-populate the prompt
-        var selectedContent = '';
-        
-        if (DEBUG) {
-            console.log(LOGNAME + ': Getting selection content');
-            
-            // Debug toggle container existence
-            console.log(LOGNAME + ': Checking insertion-mode-container', {
-                exists: !!content.one('.insertion-mode-container'),
-                html: content.one('.insertion-mode-container') ? content.one('.insertion-mode-container').get('outerHTML') : 'not found'
-            });
-            
-            // Check toggle-switch-container
-            console.log(LOGNAME + ': Checking toggle-switch-container', {
-                exists: !!content.one('.toggle-switch-container'),
-                html: content.one('.toggle-switch-container') ? content.one('.toggle-switch-container').get('outerHTML') : 'not found'
-            });
-            
-            // Check toggle-switch
-            console.log(LOGNAME + ': Checking toggle-switch', {
-                exists: !!content.one('.toggle-switch'),
-                html: content.one('.toggle-switch') ? content.one('.toggle-switch').get('outerHTML') : 'not found'
-            });
-        }
-        
-        if (this._currentSelection && typeof this._currentSelection.toString === 'function') {
-            if (DEBUG) {
-                console.log(LOGNAME + ': Selection exists and has toString method');
-            }
-            try {
-                selectedContent = ensureString(this._currentSelection.toString());
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Selection content: ', safeSubstring(selectedContent, 0, 100) + 
-                        (selectedContent.length > 100 ? '...' : ''));
+            // Safely get the host and elementid
+            var host = this.get('host');
+            var elementid = '';
+            if (host && typeof host.get === 'function') {
+                try {
+                    elementid = host.get('elementid') || '';
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Error getting elementid', e);
+                    }
+                    elementid = '';
                 }
+            }
+
+            var content;
+            try {
+                content = Y.Node.create(template({
+                    elementid: elementid,
+                    CSS: CSS,
+                    promptlabel: M.util.get_string('promptlabel', COMPONENTNAME),
+                    insertionModelabel: M.util.get_string('insertionmodelabel', COMPONENTNAME) || 'Insertion Mode',
+                    generatebutton: M.util.get_string('generatebutton', COMPONENTNAME),
+                    cancel: M.util.get_string('cancel', COMPONENTNAME),
+                    processing: M.util.get_string('processing', COMPONENTNAME),
+                    replaceContent: M.util.get_string('replacecontent', COMPONENTNAME) || 'Replace Content',
+                    addContent: M.util.get_string('addcontent', COMPONENTNAME) || 'Add Content'
+                }));
             } catch (e) {
                 if (DEBUG) {
-                    console.error(LOGNAME + ': Error getting selection text', e);
-                    this._addDebugMessage(content, 'Error getting selection: ' + e.message);
+                    console.error(LOGNAME + ': Error creating content node', e);
                 }
+                // Create a very basic fallback content
+                content = Y.Node.create('<div class="atto_aimagic_form"><div class="alert alert-danger">Error creating dialog content</div></div>');
+                return content;
             }
-        } else {
-            if (DEBUG) {
-                console.log(LOGNAME + ': No valid selection or toString method missing');
-                this._addDebugMessage(content, 'No valid selection or toString method missing');
-            }
-        }
-        
-        // Select all editor content if nothing is selected
-        if (!selectedContent) {
-            if (DEBUG) {
-                console.log(LOGNAME + ': No selection, getting all editor content');
-            }
-            try {
-                var editorContent = this.get('host').getSelection(true);
-                selectedContent = ensureString(editorContent);
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Editor content type: ' + typeof editorContent);
-                    console.log(LOGNAME + ': Editor content: ', safeSubstring(selectedContent, 0, 100) + 
-                        (selectedContent.length > 100 ? '...' : ''));
-                }
-            } catch (e) {
-                if (DEBUG) {
-                    console.error(LOGNAME + ': Error getting editor content', e);
-                    this._addDebugMessage(content, 'Error getting editor content: ' + e.message);
-                }
-            }
-        }
-        
-        var promptArea = content.one('.' + CSS.INPUTPROMPT);
-        
-        // Handle generate button.
-        content.one('.' + CSS.INPUTSUBMIT).on('click', function(e) {
-            e.preventDefault();
-            var promptText = promptArea.get('value');
-            if (promptText) {
-                // Store a reference to the dialogue content for later use
-                this._dialogueContent = content;
-                
-                // Show processing indicator
-                content.one('.' + CSS.PROCESSING).setStyle('display', 'block');
-                content.one('.' + CSS.INPUTSUBMIT).set('disabled', true);
-                content.one('.' + CSS.INPUTCANCEL).set('disabled', true);
-                
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Generate button clicked, prompt: ', safeSubstring(promptText, 0, 100) + 
-                        (promptText.length > 100 ? '...' : ''));
-                    this._addDebugMessage(content, 'Calling API with prompt: ' + safeSubstring(promptText, 0, 50) + 
-                        (promptText.length > 50 ? '...' : ''));
-                }
-                
-                // Call the OpenAI API
-                this._callOpenAI(promptText, selectedContent);
-            } else {
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Empty prompt, not submitting');
-                    this._addDebugMessage(content, 'Empty prompt, not submitting');
-                }
-            }
-        }, this);
 
-        // Handle cancel button.
-        content.one('.' + CSS.INPUTCANCEL).on('click', function(e) {
-            e.preventDefault();
+            // Get any selected text to pre-populate the prompt
+            var selectedContent = '';
+            
             if (DEBUG) {
-                console.log(LOGNAME + ': Cancel button clicked');
+                console.log(LOGNAME + ': Getting selection content');
+                
+                // Debug toggle container existence
+                console.log(LOGNAME + ': Checking insertion-mode-container', {
+                    exists: !!content.one('.insertion-mode-container'),
+                    html: content.one('.insertion-mode-container') ? content.one('.insertion-mode-container').get('outerHTML') : 'not found'
+                });
+                
+                // Check toggle-switch-container
+                console.log(LOGNAME + ': Checking toggle-switch-container', {
+                    exists: !!content.one('.toggle-switch-container'),
+                    html: content.one('.toggle-switch-container') ? content.one('.toggle-switch-container').get('outerHTML') : 'not found'
+                });
+                
+                // Check toggle-switch
+                console.log(LOGNAME + ': Checking toggle-switch', {
+                    exists: !!content.one('.toggle-switch'),
+                    html: content.one('.toggle-switch') ? content.one('.toggle-switch').get('outerHTML') : 'not found'
+                });
             }
-            this._dialogueContent = null;
-            this.getDialogue({
-                focusAfterHide: null
-            }).hide();
-        }, this);
-        
-        // Set up the toggle functionality
-        var toggleInput = content.one('#' + this.get('host').get('elementid') + '_insertion_mode_toggle');
-        var replaceLabel = content.one('.replace-label');
-        var addLabel = content.one('.add-label');
-        
-        toggleInput.on('change', function(e) {
-            if (e.target.get('checked')) {
-                replaceLabel.removeClass('selected');
-                addLabel.addClass('selected');
+            
+            // Safely check if currentSelection exists and has toString method
+            if (this._currentSelection && 
+                typeof this._currentSelection === 'object' && 
+                typeof this._currentSelection.toString === 'function') {
+                
                 if (DEBUG) {
-                    console.log(LOGNAME + ': Toggle changed to Add mode');
-                    this._addDebugMessage(content, 'Insertion mode changed to Add');
+                    console.log(LOGNAME + ': Selection exists and has toString method');
+                }
+                
+                try {
+                    selectedContent = ensureString(this._currentSelection.toString());
+                    
+                    if (DEBUG && selectedContent) {
+                        console.log(LOGNAME + ': Selection content: ', safeSubstring(selectedContent, 0, 100) + 
+                            (selectedContent.length > 100 ? '...' : ''));
+                    }
+                    
+                    // Show the insertion mode toggle if there's selected content
+                    if (selectedContent && selectedContent.length > 0) {
+                        var toggleDiv = content.one('.insertion-mode-toggle');
+                        if (toggleDiv) {
+                            toggleDiv.setStyle('display', 'block');
+                        }
+                    }
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Error getting selection text', e);
+                        this._addDebugMessage(content, 'Error getting selection: ' + e.message);
+                    }
                 }
             } else {
-                replaceLabel.addClass('selected');
-                addLabel.removeClass('selected');
                 if (DEBUG) {
-                    console.log(LOGNAME + ': Toggle changed to Replace mode');
-                    this._addDebugMessage(content, 'Insertion mode changed to Replace');
+                    console.log(LOGNAME + ': No valid selection or toString method missing');
+                    this._addDebugMessage(content, 'No valid selection or toString method missing');
                 }
             }
-        }, this);
-        
-        if (DEBUG) {
-            this._addDebugMessage(content, 'Dialogue content created successfully');
-        }
-        
-        // Make sure we're returning a YUI Node
-        if (content instanceof Y.Node) {
-            if (DEBUG) {
-                console.log(LOGNAME + ': Returning YUI Node');
+            
+            // Get the entire editor content if there's no selection
+            var editorContent = '';
+            if (!selectedContent) {
+                if (DEBUG) {
+                    console.log(LOGNAME + ': No selection, getting all editor content');
+                }
             }
-            return content;
-        } else {
-            if (DEBUG) {
-                console.error(LOGNAME + ': Content is not a YUI Node, converting');
+            
+            // Setup the prompt area and buttons safely
+            var promptArea = content.one('.' + CSS.INPUTPROMPT);
+            if (!promptArea) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Prompt area not found');
+                }
+            } else {
+                // Handle generate button.
+                var submitButton = content.one('.' + CSS.INPUTSUBMIT);
+                if (submitButton) {
+                    submitButton.on('click', function(e) {
+                        e.preventDefault();
+                        var promptText = promptArea.get('value');
+                        if (promptText) {
+                            // Store a reference to the dialogue content for later use
+                            this._dialogueContent = content;
+                            
+                            // Show processing indicator
+                            var processingEl = content.one('.' + CSS.PROCESSING);
+                            var submitButtonEl = content.one('.' + CSS.INPUTSUBMIT);
+                            var cancelButtonEl = content.one('.' + CSS.INPUTCANCEL);
+                            
+                            if (processingEl) {
+                                processingEl.setStyle('display', 'block');
+                            }
+                            
+                            if (submitButtonEl) {
+                                submitButtonEl.set('disabled', true);
+                            }
+                            
+                            if (cancelButtonEl) {
+                                cancelButtonEl.set('disabled', true);
+                            }
+                            
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Generate button clicked, prompt: ', safeSubstring(promptText, 0, 100) + 
+                                    (promptText.length > 100 ? '...' : ''));
+                                this._addDebugMessage(content, 'Calling API with prompt: ' + safeSubstring(promptText, 0, 50) + 
+                                    (promptText.length > 50 ? '...' : ''));
+                            }
+                            
+                            // Call the OpenAI API
+                            this._callOpenAI(promptText, editorContent);
+                        } else {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Empty prompt, not submitting');
+                                this._addDebugMessage(content, 'Empty prompt, not submitting');
+                            }
+                        }
+                    }, this);
+                }
+
+                // Handle cancel button.
+                var cancelButton = content.one('.' + CSS.INPUTCANCEL);
+                if (cancelButton) {
+                    cancelButton.on('click', function(e) {
+                        e.preventDefault();
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Cancel button clicked');
+                        }
+                        this._dialogueContent = null;
+                        this.getDialogue({
+                            focusAfterHide: null
+                        }).hide();
+                    }, this);
+                }
             }
-            // Try to convert to Node if needed
-            return Y.Node.create(content.toString());
+            
+            // Handle toggle switch logic
+            var toggleSwitch = content.one('#' + elementid + '_insertion_mode_toggle');
+            var replaceLabel = content.one('.replace-label');
+            var addLabel = content.one('.add-label');
+            
+            // Add event listener to toggle switch if all elements exist
+            if (toggleSwitch && replaceLabel && addLabel) {
+                toggleSwitch.on('change', function(e) {
+                    if (toggleSwitch.get('checked')) {
+                        // Add mode
+                        replaceLabel.removeClass('selected');
+                        addLabel.addClass('selected');
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Toggle changed to Add mode');
+                            this._addDebugMessage(content, 'Insertion mode changed to Add');
+                        }
+                    } else {
+                        // Replace mode
+                        replaceLabel.addClass('selected');
+                        addLabel.removeClass('selected');
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Toggle changed to Replace mode');
+                            this._addDebugMessage(content, 'Insertion mode changed to Replace');
+                        }
+                    }
+                }, this);
+            } else {
+                if (DEBUG) {
+                    console.warn(LOGNAME + ': Toggle switch elements not found', {
+                        toggleExists: !!toggleSwitch,
+                        replaceLabelExists: !!replaceLabel,
+                        addLabelExists: !!addLabel
+                    });
+                }
+            }
+            
+            if (DEBUG) {
+                this._addDebugMessage(content, 'Dialogue content created successfully');
+            }
+            
+            // Make sure we're returning a YUI Node
+            if (content instanceof Y.Node) {
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Returning YUI Node');
+                }
+                return content;
+            } else {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Content is not a YUI Node, converting');
+                }
+                // Try to convert to Node if needed
+                try {
+                    return Y.Node.create(content.toString());
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Failed to convert content to Node', e);
+                    }
+                    // Return a basic error message node as fallback
+                    return Y.Node.create('<div class="alert alert-danger">Error creating dialogue content</div>');
+                }
+            }
+        } catch (e) {
+            if (DEBUG) {
+                console.error(LOGNAME + ': Critical error in _getDialogueContent', e);
+            }
+            // Return a basic error message node as fallback
+            return Y.Node.create('<div class="alert alert-danger">Error creating dialogue content</div>');
         }
     },
     
@@ -559,195 +636,259 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
     _callOpenAI: function(promptText, selectedContent) {
         var self = this;
         
-        // Ensure we're working with strings
-        promptText = ensureString(promptText);
-        selectedContent = ensureString(selectedContent);
-        
-        // Use stored dialogue content reference
-        var content = this._dialogueContent;
-        var dialogue = this.getDialogue();
-        
-        if (DEBUG) {
-            console.log(LOGNAME + ': _callOpenAI called', {
-                promptLength: promptText ? promptText.length : 0,
-                selectedContentLength: selectedContent ? selectedContent.length : 0,
-                contentExists: !!content,
-                dialogueExists: !!dialogue
-            });
-        }
-        
-        // Check for API settings
-        if (!this._apiSettings || !this._apiSettings.apiKey || !this._apiSettings.assistantId) {
+        try {
+            // Ensure we're working with strings
+            promptText = ensureString(promptText);
+            selectedContent = ensureString(selectedContent);
+            
+            // Use stored dialogue content reference
+            var content = this._dialogueContent;
+            var dialogue = this.getDialogue();
+            
             if (DEBUG) {
-                console.log(LOGNAME + ': API settings check', {
-                    hasApiSettings: !!this._apiSettings,
-                    hasApiKey: this._apiSettings ? !!this._apiSettings.apiKey : false,
-                    hasAssistantId: this._apiSettings ? !!this._apiSettings.assistantId : false
+                console.log(LOGNAME + ': _callOpenAI called', {
+                    promptLength: promptText ? promptText.length : 0,
+                    selectedContentLength: selectedContent ? selectedContent.length : 0,
+                    contentExists: !!content,
+                    dialogueExists: !!dialogue
                 });
             }
-            var errorMsg = 'OpenAI API key or Assistant ID not configured. Please check the plugin settings.';
-            if (DEBUG) {
-                console.error(LOGNAME + ': ' + errorMsg);
-                
-                if (content) {
-                    this._addDebugMessage(content, 'Error: ' + errorMsg);
-                }
-            }
-            this._handleApiError(errorMsg);
-            return;
-        }
-        
-        // Get the entire editor content if there's no selection
-        var editorContent = '';
-        if (!selectedContent) {
-            try {
-                var host = this.get('host');
-                editorContent = ensureString(host.getHTML());
+            
+            // Check for API settings
+            if (!this._apiSettings || !this._apiSettings.apiKey || !this._apiSettings.assistantId) {
                 if (DEBUG) {
-                    console.log(LOGNAME + ': Got editor content', {
-                        length: editorContent.length,
-                        sample: safeSubstring(editorContent, 0, 100) + (editorContent.length > 100 ? '...' : '')
+                    console.log(LOGNAME + ': API settings check', {
+                        hasApiSettings: !!this._apiSettings,
+                        hasApiKey: this._apiSettings ? !!this._apiSettings.apiKey : false,
+                        hasAssistantId: this._apiSettings ? !!this._apiSettings.assistantId : false
                     });
+                }
+                var errorMsg = 'OpenAI API key or Assistant ID not configured. Please check the plugin settings.';
+                if (DEBUG) {
+                    console.error(LOGNAME + ': ' + errorMsg);
+                    
+                    if (content) {
+                        this._addDebugMessage(content, 'Error: ' + errorMsg);
+                    }
+                }
+                this._handleApiError(errorMsg);
+                return;
+            }
+            
+            // Get the entire editor content if there's no selection
+            var editorContent = '';
+            try {
+                if (!selectedContent) {
+                    editorContent = this._getEditorContent();
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Got editor content using _getEditorContent', {
+                            contentType: typeof editorContent,
+                            length: editorContent ? editorContent.length : 0,
+                            sample: editorContent ? safeSubstring(editorContent, 0, 100) + 
+                                (editorContent.length > 100 ? '...' : '') : 'Empty'
+                        });
+                    }
+                } else {
+                    editorContent = selectedContent;
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Using selected content as editor content');
+                    }
+                }
+                
+                // Ensure editorContent is a string
+                editorContent = ensureString(editorContent);
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Error getting editor content', e);
+                }
+                editorContent = '';
+            }
+            
+            // Create the prompt with context
+            var fullPrompt = '';
+            try {
+                if (editorContent && editorContent.trim && editorContent.trim()) {
+                    fullPrompt = 'Context:\n\n' + editorContent + '\n\nUser Request:\n' + promptText + 
+                        '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
+                } else {
+                    fullPrompt = 'User Request:\n' + promptText + 
+                        '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
+                }
+                
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Final prompt prepared', {
+                        promptType: typeof fullPrompt,
+                        length: fullPrompt ? fullPrompt.length : 0,
+                        withContext: !!editorContent
+                    });
+                    
+                    if (content) {
+                        this._addDebugMessage(content, 'Sending API request with ' + 
+                            (editorContent ? 'editor content as context' : 'no context'));
+                    }
                 }
             } catch (e) {
                 if (DEBUG) {
-                    console.error(LOGNAME + ': Failed to get editor content', e);
+                    console.error(LOGNAME + ': Error creating prompt', e);
+                }
+                // Fallback to minimal prompt
+                fullPrompt = promptText || '';
+                
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Using fallback minimal prompt');
                 }
             }
-        } else {
-            editorContent = selectedContent;
-        }
-        
-        // Create the prompt with context
-        var fullPrompt = '';
-        if (editorContent && editorContent.trim()) {
-            fullPrompt = 'Context:\n\n' + editorContent + '\n\nUser Request:\n' + promptText + 
-                '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
-        } else {
-            fullPrompt = 'User Request:\n' + promptText + 
-                '\n\nPlease respond with HTML including appropriate inline CSS styling for Moodle.';
-        }
-        
-        if (DEBUG) {
-            console.log(LOGNAME + ': Final prompt prepared', {
-                length: fullPrompt.length,
-                withContext: !!editorContent
-            });
             
-            if (content) {
-                this._addDebugMessage(content, 'Sending API request with ' + 
-                    (editorContent ? 'editor content as context' : 'no context'));
-            }
-        }
-        
-        // Use YUI IO to make the API request
-        Y.io(M.cfg.wwwroot + '/lib/editor/atto/plugins/aimagic/ajax.php', {
-            method: 'POST',
-            data: {
-                sesskey: M.cfg.sesskey,
-                action: 'generate',
-                contextid: this.get('contextid'),
-                prompt: fullPrompt,
-                apikey: this._apiSettings.apiKey,
-                assistantid: this._apiSettings.assistantId,
-                baseurl: this._apiSettings.baseUrl,
-                timeout: this._apiSettings.timeout
-            },
-            on: {
-                start: function() {
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': API request started');
-                        
-                        if (content) {
-                            self._addDebugMessage(content, 'API request started');
-                        }
-                    }
-                },
-                success: function(id, response) {
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': API request succeeded', {
-                            responseLength: response && response.responseText ? response.responseText.length : 0,
-                            statusCode: response ? response.status : 'unknown'
-                        });
-                        
-                        if (content) {
-                            self._addDebugMessage(content, 'API request succeeded: Status ' + 
-                                (response ? response.status : 'unknown'));
-                        }
-                    }
-                    
+            // Check for insertion mode toggle setting - default to replace mode (false) if not found
+            var addContent = false;
+            try {
+                if (content) {
+                    var elementid = '';
                     try {
-                        if (!response || !response.responseText) {
-                            throw new Error('Empty response received');
-                        }
-                        
-                        var data = JSON.parse(response.responseText);
-                        
-                        if (DEBUG) {
-                            console.log(LOGNAME + ': API response parsed', {
-                                success: !!data.success,
-                                hasContent: !!data.content,
-                                error: data.error || 'none'
-                            });
-                            
-                            if (content) {
-                                self._addDebugMessage(content, 'API response parsed: ' + 
-                                    (data.success ? 'Success' : 'Failed'));
-                            }
-                        }
-                        
-                        if (data.success && data.content) {
-                            if (DEBUG) {
-                                console.log(LOGNAME + ': Inserting content', {
-                                    contentLength: data.content.length
-                                });
-                                
-                                if (content) {
-                                    self._addDebugMessage(content, 'Content received, length: ' + data.content.length);
-                                }
-                            }
-                            self._insertContent(data.content, selectedContent);
-                        } else {
-                            var errorMsg = data.error || 'Unknown API error';
-                            if (DEBUG) {
-                                console.error(LOGNAME + ': API error', errorMsg);
-                                
-                                if (content) {
-                                    self._addDebugMessage(content, 'API error: ' + errorMsg);
-                                }
-                            }
-                            self._handleApiError(errorMsg);
+                        if (this.get('host') && typeof this.get('host').get === 'function') {
+                            elementid = this.get('host').get('elementid') || '';
                         }
                     } catch (e) {
                         if (DEBUG) {
-                            console.error(LOGNAME + ': Error parsing API response', e);
-                            console.log('Response text:', response ? safeSubstring(response.responseText, 0, 500) : 'none');
-                            
-                            if (content) {
-                                self._addDebugMessage(content, 'Error parsing response: ' + e.message);
+                            console.error(LOGNAME + ': Error getting elementid', e);
+                        }
+                        elementid = '';
+                    }
+                    
+                    if (elementid) {
+                        var toggleId = '#' + elementid + '_insertion_mode_toggle';
+                        var toggleSwitch = content.one(toggleId);
+                        
+                        if (toggleSwitch) {
+                            addContent = !!toggleSwitch.get('checked');
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Toggle switch state retrieved:', {
+                                    toggleId: toggleId,
+                                    addContent: addContent
+                                });
+                                this._addDebugMessage(content, 'Using insertion mode: ' + (addContent ? 'Add' : 'Replace'));
+                            }
+                        } else {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Toggle switch not found:', toggleId);
                             }
                         }
-                        self._handleApiError('Error processing response: ' + e.message);
-                    }
-                },
-                failure: function(id, response) {
-                    var statusMsg = response ? 'Status: ' + response.status : 'No status';
-                    if (DEBUG) {
-                        console.error(LOGNAME + ': API request failed', {
-                            id: id,
-                            statusCode: response ? response.status : 'unknown',
-                            statusText: response ? response.statusText : 'unknown'
-                        });
-                        
-                        if (content) {
-                            self._addDebugMessage(content, 'API request failed: ' + statusMsg);
+                    } else {
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': No valid elementid for toggle switch');
                         }
                     }
-                    self._handleApiError('Network error. ' + statusMsg);
                 }
-            },
-            timeout: this._apiSettings.timeout * 1000
-        });
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Error getting toggle state', e);
+                    if (content) {
+                        this._addDebugMessage(content, 'Error getting toggle state: ' + e.message);
+                    }
+                }
+            }
+            
+            // Prepare API request data
+            var apiRequestData = {
+                sesskey: M.cfg ? M.cfg.sesskey : '',
+                action: 'generate',
+                contextid: this.get('contextid') || 0,
+                prompt: fullPrompt || '',
+                apikey: this._apiSettings.apiKey || '',
+                assistantid: this._apiSettings.assistantId || '',
+                baseurl: this._apiSettings.baseUrl || 'https://api.openai.com',
+                timeout: this._apiSettings.timeout || 30
+            };
+            
+            if (DEBUG) {
+                console.log(LOGNAME + ': Prepared API request data', {
+                    hasSesskey: !!apiRequestData.sesskey,
+                    hasPrompt: !!apiRequestData.prompt,
+                    promptLength: apiRequestData.prompt ? apiRequestData.prompt.length : 0,
+                    hasApiKey: !!apiRequestData.apikey,
+                    apiKeyLength: apiRequestData.apikey ? apiRequestData.apikey.length : 0,
+                    hasAssistantId: !!apiRequestData.assistantid
+                });
+            }
+            
+            // Use YUI IO to make the API request
+            var wwwroot = M.cfg && M.cfg.wwwroot ? M.cfg.wwwroot : '';
+            if (!wwwroot) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': wwwroot is not available');
+                }
+                this._handleApiError('API request failed: wwwroot not available');
+                return;
+            }
+            
+            var apiEndpoint = wwwroot + '/lib/editor/atto/plugins/aimagic/ajax.php';
+            if (DEBUG) {
+                console.log(LOGNAME + ': Making API request to: ' + apiEndpoint);
+            }
+            
+            Y.io(apiEndpoint, {
+                method: 'POST',
+                data: apiRequestData,
+                on: {
+                    success: function(id, response) {
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': API response received', {
+                                responseExists: !!response,
+                                responseTextLength: response && response.responseText ? response.responseText.length : 0
+                            });
+                        }
+                        
+                        try {
+                            if (!response || !response.responseText) {
+                                throw new Error('Empty response received from server');
+                            }
+                            
+                            var jsonResponse = JSON.parse(response.responseText);
+                            if (jsonResponse.error) {
+                                if (DEBUG) {
+                                    console.error(LOGNAME + ': API error: ' + jsonResponse.error);
+                                }
+                                self._handleApiError(jsonResponse.error);
+                            } else if (jsonResponse.content) {
+                                if (DEBUG) {
+                                    console.log(LOGNAME + ': API response processed successfully', {
+                                        responseLength: jsonResponse.content ? jsonResponse.content.length : 0,
+                                        insertionMode: addContent ? 'Add' : 'Replace'
+                                    });
+                                }
+                                self._insertContent(jsonResponse.content, addContent);
+                            } else {
+                                if (DEBUG) {
+                                    console.error(LOGNAME + ': API response missing content');
+                                }
+                                self._handleApiError('API response missing content');
+                            }
+                        } catch (e) {
+                            if (DEBUG) {
+                                console.error(LOGNAME + ': Error parsing API response', e);
+                                console.log('Response text sample:', response ? safeSubstring(response.responseText, 0, 500) : 'none');
+                            }
+                            self._handleApiError('Error processing API response: ' + e.message);
+                        }
+                    },
+                    failure: function(id, response) {
+                        if (DEBUG) {
+                            console.error(LOGNAME + ': API request failed', {
+                                responseExists: !!response,
+                                status: response ? response.status : 'unknown',
+                                statusText: response ? response.statusText : 'unknown'
+                            });
+                        }
+                        self._handleApiError('API request failed: ' + (response && response.statusText ? response.statusText : 'Unknown error'));
+                    }
+                }
+            });
+        } catch (e) {
+            if (DEBUG) {
+                console.error(LOGNAME + ': Critical error in _callOpenAI', e);
+            }
+            this._handleApiError('Critical error in API call: ' + e.message);
+        }
     },
     
     /**
@@ -937,7 +1078,7 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
         
         // Append the AI-assisted icon SVG at the end of the content
         var aiAssistantIconUrl = M.cfg.wwwroot + '/lib/editor/atto/plugins/aimagic/pix/ai_assisted_button.svg';
-        content = content + ' <img src="' + aiAssistantIconUrl + '" alt="AI-generated content" title="This content was generated by AI" class="ai-assisted-content-badge" style="width: 20px; height: 20px; vertical-align: middle; margin-left: 5px;" />';
+        content = content + ' <img src="' + aiAssistantIconUrl + '" alt="AI-generated content" title="This content was generated by AI" class="ai-assisted-content-badge" style="width: 80px; height: 20px; vertical-align: middle; margin-left: 5px;" />';
         
         if (DEBUG) {
             console.log(LOGNAME + ': Content prepared for insertion with AI icon, length: ' + content.length);
@@ -946,122 +1087,549 @@ Y.namespace('M.atto_aimagic').Button = Y.Base.create('button', Y.M.editor_atto.E
         // Make sure any dialog is hidden first to prevent focus issues
         this.getDialogue({focusAfterHide: false}).hide();
         
-        try {
-            // Focus the editor
-            host.focus();
-            
-            if (addContent) {
-                // For add content mode, simply insert at focus point
+        // Focus the editor
+        host.focus();
+
+        // For add content mode, simply insert at focus point
+        if (addContent) {
+            try {
                 host.insertContentAtFocusPoint(content);
                 if (DEBUG) {
                     console.log(LOGNAME + ': Content added at cursor position');
                 }
-            } else {
-                // For replace content mode
-                var selection = host.getSelection();
+                this.markUpdated();
+                return;
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Error adding content at focus point', e);
+                }
+            }
+        } else {
+            // For replace mode, use a multi-layered approach to ensure content is replaced
+            
+            // Try using the editor's setHTML method if available
+            try {
+                if (host.editor && typeof host.editor.setHTML === 'function') {
+                    host.editor.setHTML(content);
+                    
+                    // Also update the textarea directly to ensure changes persist
+                    if (host.textarea && typeof host.textarea.set === 'function') {
+                        host.textarea.set('value', content);
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Updated textarea value after setHTML');
+                        }
+                    }
+                    
+                    // Update the original to apply changes
+                    host.updateOriginal();
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Replaced content using editor.setHTML()');
+                    }
+                    this.markUpdated();
+                    return;
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to use editor.setHTML()', e);
+                }
+            }
+            
+            // Try setting content via the editor's set method
+            try {
+                if (host.editor && typeof host.editor.set === 'function') {
+                    host.editor.set('content', content);
+                    
+                    // Also update the textarea directly to ensure changes persist
+                    if (host.textarea && typeof host.textarea.set === 'function') {
+                        host.textarea.set('value', content);
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Updated textarea value after editor.set');
+                        }
+                    }
+                    
+                    // Update the original to apply changes
+                    host.updateOriginal();
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Replaced content using editor.set(content)');
+                    }
+                    this.markUpdated();
+                    return;
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to use editor.set(content)', e);
+                }
+            }
+            
+            // Try updating content via YUI Node API
+            try {
+                var editorId = host.get('elementid');
+                if (Y.one && typeof Y.one === 'function') {
+                    var editorArea = Y.one('#' + editorId + 'editable');
+                    if (editorArea) {
+                        editorArea.set('innerHTML', content);
+                        
+                        // Also update the textarea
+                        var textArea = Y.one('#' + editorId);
+                        if (textArea) {
+                            textArea.set('value', content);
+                        }
+                        
+                        // Update original
+                        host.updateOriginal();
+                        
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Replaced content using Y.one() for both editor and textarea');
+                        }
+                        this.markUpdated();
+                        return;
+                    }
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to use Y.one() replacement', e);
+                }
+            }
+
+            // Try to get selection and replace it with the new content
+            try {
+                // When all else fails, first try to select all content in the editor
+                host.focus();
                 
-                if (selection && selection.toString().length > 0) {
-                    // We have a selection to replace
-                    try {
-                        // First try the standard Atto method with range
-                        var range = host.getSelectionRange();
-                        if (range) {
-                            // Delete the current selection
-                            range.deleteContents();
-                            
-                            // Create a fragment with our content
-                            var tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = content;
-                            var fragment = document.createDocumentFragment();
-                            while (tempDiv.firstChild) {
-                                fragment.appendChild(tempDiv.firstChild);
-                            }
-                            
-                            // Insert the fragment
-                            range.insertNode(fragment);
-                            
+                // Use the browser's native selection API
+                if (window.getSelection && document.createRange) {
+                    var selection = window.getSelection();
+                    if (selection.rangeCount > 0) {
+                        selection.removeAllRanges();
+                    }
+                    
+                    var editorId = host.get('elementid');
+                    var editorNode = document.getElementById(editorId + 'editable');
+                    
+                    if (editorNode) {
+                        var range = document.createRange();
+                        range.selectNodeContents(editorNode);
+                        selection.addRange(range);
+                        
+                        // Use execCommand to insert the HTML
+                        var result = document.execCommand('insertHTML', false, content);
+                        
+                        if (result) {
                             if (DEBUG) {
-                                console.log(LOGNAME + ': Content replaced selection using range');
+                                console.log(LOGNAME + ': Replaced content using selection+execCommand');
                             }
+                            
+                            // Update the original textarea
+                            host.updateOriginal();
+                            this.markUpdated();
+                            return;
                         } else {
-                            throw new Error('No valid range found');
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': execCommand returned false, trying alternative');
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Error using selection and execCommand', e);
+                }
+            }
+            
+            // Last resort: force update the editor's DOM element directly
+            try {
+                var editorId = host.get('elementid');
+                
+                // Update the editable div
+                var editorNode = document.getElementById(editorId + 'editable');
+                if (editorNode) {
+                    editorNode.innerHTML = content;
+                    
+                    // Try to manually trigger input event
+                    var inputEvent = new Event('input', {
+                        bubbles: true,
+                        cancelable: true,
+                    });
+                    editorNode.dispatchEvent(inputEvent);
+                    
+                    // Also update the textarea
+                    var textareaNode = document.getElementById(editorId);
+                    if (textareaNode) {
+                        textareaNode.value = content;
+                    }
+                    
+                    // Force editor to recognize the change
+                    host.updateOriginal();
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Force-updated editor and textarea DOM elements directly');
+                    }
+                    this.markUpdated();
+                    return;
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Error directly updating DOM', e);
+                }
+            }
+            
+            // Ultra last resort: try the insertContentAtFocusPoint even in replace mode
+            try {
+                host.focus();
+                host.insertContentAtFocusPoint(content);
+                if (DEBUG) {
+                    console.log(LOGNAME + ': Used insertContentAtFocusPoint as last resort for replace mode');
+                }
+                this.markUpdated();
+                return;
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed even with insertContentAtFocusPoint fallback', e);
+                }
+            }
+        }
+        
+        if (DEBUG) {
+            console.error(LOGNAME + ': All content insertion methods failed');
+        }
+    },
+
+    /**
+     * Get the current editor content using multiple methods
+     * 
+     * @method _getEditorContent
+     * @private
+     * @return {String} The editor content
+     */
+    _getEditorContent: function() {
+        var host = this.get('host');
+        var content = '';
+        
+        // Defensive check - if host is undefined, return empty string
+        if (!host) {
+            if (DEBUG) {
+                console.error(LOGNAME + ': Host is undefined in _getEditorContent');
+            }
+            return '';
+        }
+        
+        try {
+            // Try multiple approaches to get the editor content
+            
+            // Method 1: Try the editor directly
+            if (host.editor && typeof host.editor.get === 'function') {
+                try {
+                    content = host.editor.get('content');
+                    if (content === undefined || content === null) {
+                        if (DEBUG) {
+                            console.warn(LOGNAME + ': editor.get(content) returned undefined/null');
+                        }
+                    } else {
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Got content using editor.get(content)');
+                        }
+                        return ensureString(content);
+                    }
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Failed to get content via editor.get(content)', e);
+                    }
+                }
+            }
+            
+            // Method 2: Try the YUI instance
+            if (Y && Y.one && typeof Y.one === 'function') {
+                try {
+                    var editorId = '';
+                    try {
+                        editorId = host.get('elementid');
+                        if (!editorId) {
+                            if (DEBUG) {
+                                console.warn(LOGNAME + ': elementid is empty');
+                            }
+                            editorId = '';
                         }
                     } catch (e) {
                         if (DEBUG) {
-                            console.error(LOGNAME + ': Range replacement failed, trying execCommand', e);
+                            console.error(LOGNAME + ': Error getting elementid', e);
                         }
-                        
-                        try {
-                            // Try execCommand as fallback
-                            document.execCommand('insertHTML', false, content);
-                            if (DEBUG) {
-                                console.log(LOGNAME + ': Content replaced using execCommand');
-                            }
-                        } catch (e2) {
-                            if (DEBUG) {
-                                console.error(LOGNAME + ': execCommand failed too, using setHTML', e2);
-                            }
-                            
-                            // If that fails too, just replace the entire content
-                            if (typeof host.setHTML === 'function') {
-                                host.setHTML(content);
+                        editorId = '';
+                    }
+                    
+                    if (editorId) {
+                        var editorArea = Y.one('#' + editorId + 'editable');
+                        if (editorArea) {
+                            content = editorArea.get('innerHTML');
+                            if (content === undefined || content === null) {
                                 if (DEBUG) {
-                                    console.log(LOGNAME + ': Content replaced using setHTML');
+                                    console.warn(LOGNAME + ': Y.one().get(innerHTML) returned undefined/null');
                                 }
                             } else {
-                                // Final fallback
-                                host.insertContentAtFocusPoint(content);
                                 if (DEBUG) {
-                                    console.log(LOGNAME + ': Content inserted at cursor (final fallback)');
+                                    console.log(LOGNAME + ': Got content using Y.one().get(innerHTML)');
                                 }
+                                return ensureString(content);
+                            }
+                        } else {
+                            if (DEBUG) {
+                                console.warn(LOGNAME + ': Editor area not found: #' + editorId + 'editable');
                             }
                         }
                     }
-                } else {
-                    // If no selection, replace entire editor content
-                    if (typeof host.setHTML === 'function') {
-                        host.setHTML(content);
-                        if (DEBUG) {
-                            console.log(LOGNAME + ': Replaced entire editor content');
-                        }
-                    } else {
-                        // Fallback if setHTML is not available
-                        host.insertContentAtFocusPoint(content);
-                        if (DEBUG) {
-                            console.log(LOGNAME + ': Content inserted at cursor (no selection)');
-                        }
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Failed to get content via Y.one', e);
                     }
                 }
-            }
-            this.markUpdated();
-        } catch (error) {
-            if (DEBUG) {
-                console.error(LOGNAME + ': Error inserting content:', error);
             }
             
-            // Ultimate fallback - try the simplest possible approach
+            // Method 3: Direct DOM access
             try {
-                if (DEBUG) {
-                    console.log(LOGNAME + ': Trying ultimate fallback insertion');
-                }
-                host.focus();
-                if (!addContent && typeof host.setHTML === 'function') {
-                    host.setHTML(content);
-                    if (DEBUG) {
-                        console.log(LOGNAME + ': Ultimate fallback using setHTML');
+                var editorId = '';
+                try {
+                    editorId = host.get('elementid');
+                    if (!editorId) {
+                        if (DEBUG) {
+                            console.warn(LOGNAME + ': elementid is empty (DOM method)');
+                        }
                     }
-                } else {
-                    host.insertContentAtFocusPoint(content);
+                } catch (e) {
                     if (DEBUG) {
-                        console.log(LOGNAME + ': Ultimate fallback using insertContentAtFocusPoint');
+                        console.error(LOGNAME + ': Error getting elementid (DOM method)', e);
+                    }
+                    editorId = '';
+                }
+                
+                if (editorId) {
+                    var editorNode = document.getElementById(editorId + 'editable');
+                    if (editorNode) {
+                        content = editorNode.innerHTML;
+                        if (content === undefined || content === null) {
+                            if (DEBUG) {
+                                console.warn(LOGNAME + ': editorNode.innerHTML returned undefined/null');
+                            }
+                        } else {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Got content using DOM getElementById');
+                            }
+                            return ensureString(content);
+                        }
+                    } else {
+                        if (DEBUG) {
+                            console.warn(LOGNAME + ': Editor node not found: ' + editorId + 'editable');
+                        }
                     }
                 }
-                this.markUpdated();
             } catch (e) {
                 if (DEBUG) {
-                    console.error(LOGNAME + ': Ultimate fallback insertion also failed:', e);
+                    console.error(LOGNAME + ': Failed to get content via DOM', e);
                 }
             }
+            
+            // Method 4: Try textarea value (fallback)
+            try {
+                var editorId = '';
+                try {
+                    editorId = host.get('elementid');
+                    if (!editorId) {
+                        if (DEBUG) {
+                            console.warn(LOGNAME + ': elementid is empty (textarea method)');
+                        }
+                    }
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Error getting elementid (textarea method)', e);
+                    }
+                    editorId = '';
+                }
+                
+                if (editorId) {
+                    var textareaNode = document.getElementById(editorId);
+                    if (textareaNode) {
+                        content = textareaNode.value;
+                        if (content === undefined || content === null) {
+                            if (DEBUG) {
+                                console.warn(LOGNAME + ': textareaNode.value returned undefined/null');
+                            }
+                        } else {
+                            if (DEBUG) {
+                                console.log(LOGNAME + ': Got content using textarea value');
+                            }
+                            return ensureString(content);
+                        }
+                    } else {
+                        if (DEBUG) {
+                            console.warn(LOGNAME + ': Textarea node not found: ' + editorId);
+                        }
+                    }
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to get content via textarea', e);
+                }
+            }
+            
+            if (DEBUG) {
+                console.warn(LOGNAME + ': All methods to get editor content failed, returning empty string');
+            }
+            return '';
+        } catch (e) {
+            if (DEBUG) {
+                console.error(LOGNAME + ': Error in _getEditorContent', e);
+            }
+            return '';
+        }
+    },
+
+    /**
+     * Replace editor content using multiple fallbacks
+     * 
+     * @method _replaceEditorContent
+     * @param {String} content The content to replace with
+     * @private
+     * @return {Boolean} True if content was replaced, false otherwise
+     */
+    _replaceEditorContent: function(content) {
+        var host = this.get('host');
+        
+        try {
+            // Method 1: Try the editor directly
+            if (host.editor && typeof host.editor.set === 'function') {
+                try {
+                    host.editor.set('content', content);
+                    // After setting content, update the textarea to ensure changes persist
+                    if (host.textarea && host.textarea.set && typeof host.textarea.set === 'function') {
+                        host.textarea.set('value', content);
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Updated textarea value after editor.set');
+                        }
+                    }
+                    
+                    // Make sure the changes are applied
+                    host.updateOriginal();
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Replaced content using editor.set(content)');
+                    }
+                    return true;
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Failed to replace content via editor.set(content)', e);
+                    }
+                }
+            }
+            
+            // Method 2: Try YUI node and update original
+            if (Y.one && typeof Y.one === 'function') {
+                try {
+                    var editorId = host.get('elementid');
+                    var editorArea = Y.one('#' + editorId + 'editable');
+                    if (editorArea) {
+                        editorArea.set('innerHTML', content);
+                        // Update the original textarea
+                        host.updateOriginal();
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Replaced content using Y.one().set(innerHTML) and updateOriginal');
+                        }
+                        return true;
+                    }
+                } catch (e) {
+                    if (DEBUG) {
+                        console.error(LOGNAME + ': Failed to replace content via Y.one', e);
+                    }
+                }
+            }
+            
+            // Method 3: Direct DOM access and manual event
+            try {
+                var editorId = host.get('elementid');
+                var editorNode = document.getElementById(editorId + 'editable');
+                if (editorNode) {
+                    editorNode.innerHTML = content;
+                    
+                    // Manually trigger an input event to ensure changes are recognized
+                    var inputEvent = new Event('input', {
+                        bubbles: true,
+                        cancelable: true,
+                    });
+                    editorNode.dispatchEvent(inputEvent);
+                    
+                    // Update the original textarea
+                    host.updateOriginal();
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Replaced content using DOM getElementById and triggered input event');
+                    }
+                    return true;
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to replace content via DOM', e);
+                }
+            }
+            
+            // Method 4: Try changing textarea value directly and notify editor
+            try {
+                var textareaNode = document.getElementById(host.get('elementid'));
+                if (textareaNode) {
+                    textareaNode.value = content;
+                    
+                    // Try to notify editor of change
+                    if (host.editor && typeof host.editor.setHTML === 'function') {
+                        host.editor.setHTML(content);
+                    }
+                    
+                    if (DEBUG) {
+                        console.log(LOGNAME + ': Replaced content using textarea value and notified editor');
+                    }
+                    return true;
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to replace content via textarea', e);
+                }
+            }
+            
+            // Method 5 (Ultimate fallback): Use execCommand to replace selection
+            try {
+                host.focus();
+                if (host.getSelection()) {
+                    // Set selection to entire editor if possible
+                    var selection = host.getSelection();
+                    var range = document.createRange();
+                    var editorId = host.get('elementid');
+                    var editorNode = document.getElementById(editorId + 'editable');
+                    
+                    if (editorNode) {
+                        range.selectNodeContents(editorNode);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        
+                        // Use execCommand to replace content
+                        document.execCommand('insertHTML', false, content);
+                        if (DEBUG) {
+                            console.log(LOGNAME + ': Replaced content using selection and execCommand');
+                        }
+                        return true;
+                    }
+                }
+            } catch (e) {
+                if (DEBUG) {
+                    console.error(LOGNAME + ': Failed to replace content via execCommand', e);
+                }
+            }
+            
+            if (DEBUG) {
+                console.warn(LOGNAME + ': All methods to replace editor content failed');
+            }
+            return false;
+        } catch (e) {
+            if (DEBUG) {
+                console.error(LOGNAME + ': Error in _replaceEditorContent', e);
+            }
+            return false;
         }
     }
 });

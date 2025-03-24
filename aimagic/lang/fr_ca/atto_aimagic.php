@@ -32,12 +32,15 @@ $string['cancel'] = 'Annuler';
 $string['processing'] = 'Génération de contenu, veuillez patienter...';
 $string['error'] = 'Une erreur est survenue. Veuillez réessayer.';
 $string['useprompt'] = 'Utiliser cette invite';
+$string['replacecontent'] = 'Remplacer le contenu sélectionné';
+$string['addcontent'] = 'Ajouter au contenu sélectionné';
+$string['insertionmodelabel'] = 'Mode d\'insertion';
 
 // Settings page strings
 $string['apikey'] = 'Clé API OpenAI';
 $string['apikey_desc'] = 'Votre clé API OpenAI pour accéder à l\'API des Assistants';
-$string['agentid'] = 'ID d\'Assistant OpenAI';
-$string['agentid_desc'] = 'L\'ID de l\'Assistant OpenAI à utiliser pour générer du contenu';
+$string['assistantid'] = 'ID d\'Assistant OpenAI';
+$string['assistantid_desc'] = 'L\'ID de l\'Assistant OpenAI à utiliser pour générer du contenu';
 $string['baseurl'] = 'URL de base de l\'API';
 $string['baseurl_desc'] = 'L\'URL de base pour l\'API OpenAI (à modifier uniquement si vous utilisez un point de terminaison personnalisé)';
 $string['timeout'] = 'Délai d\'attente de la demande';
@@ -53,6 +56,8 @@ $string['testconnection_assistant_valid'] = 'ID d\'Assistant est valide';
 $string['testconnection_assistant_invalid'] = 'ID d\'Assistant est invalide ou introuvable';
 $string['testconnection_apikey_missing'] = 'Clé API manquante ou invalide';
 $string['testconnection_assistant_missing'] = 'ID d\'Assistant manquant';
+$string['test_success_popup'] = 'Test Réussi: Vous êtes Connecté à OpenAI';
+$string['test_error_popup'] = 'Test Échoué: Vérifiez vos Clés';
 
 // Privacy
 $string['privacy:metadata:atto_aimagic'] = 'Le plugin Atto Magie IA ne stocke aucune donnée personnelle, mais transmet le contenu saisi par l\'utilisateur à l\'API OpenAI pour traitement.';
