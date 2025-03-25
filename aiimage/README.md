@@ -7,8 +7,8 @@ This is a plugin for the Moodle Atto editor that allows users to generate AI ima
 - Generate images directly within the Moodle editor
 - Choose from square, landscape, or portrait aspect ratios
 - Uses Stability.ai's API for high-quality image generation
-- Images include AI watermark for transparency
-- All image prompts are logged for accountability
+- Images include AI watermark for transparency (requires PHP GD)
+- All image prompts are logged
 
 ## Requirements
 
@@ -57,7 +57,7 @@ This plugin is licensed under the GNU GPL v3 or later.
 ## Credits
 
 - Developed by CHURCHx
-- Icons and design elements by various artists
+- Icon by Arif Arisandi for Noun Project CC BY-3.0 Attribution
 - Powered by Stability.ai API
 
 ## Support
