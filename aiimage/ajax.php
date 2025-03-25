@@ -108,23 +108,27 @@ $result->success = false;
 $result->error = '';
 $result->content = '';
 
-// Set up dimensions based on aspect ratio
+// Set the dimensions based on the aspect ratio
 $width = 1024;
 $height = 1024;
+$api_aspect_ratio = '1:1'; // Default API aspect ratio
 
 switch ($aspectratio) {
     case 'landscape':
         $width = 1344;
         $height = 768;
+        $api_aspect_ratio = '16:9';
         break;
     case 'portrait':
         $width = 768;
         $height = 1344;
+        $api_aspect_ratio = '9:16';
         break;
     case 'square':
     default:
         $width = 1024;
         $height = 1024;
+        $api_aspect_ratio = '1:1';
         break;
 }
 
@@ -225,134 +229,244 @@ if ($action === 'generate') {
     }
     
     // Build the API URL for image generation
-    $apiurl = rtrim($baseurl, '/') . '/v1/generation/' . $model . '/text-to-image';
+    $apiurl = '';
+    
+    // Check if the model is a newer Stable Image or SD3 model
+    if (strpos($model, 'stable-image-') === 0) {
+        // Check specific Stable Image model
+        if ($model === 'stable-image-core') {
+            $apiurl = rtrim($baseurl, '/') . '/v2beta/stable-image/generate/core';
+            aiimage_log('Using v2beta Stable Image Core endpoint for model: ' . $model);
+        } else if ($model === 'stable-image-ultra') {
+            $apiurl = rtrim($baseurl, '/') . '/v2beta/stable-image/generate/ultra';
+            aiimage_log('Using v2beta Stable Image Ultra endpoint for model: ' . $model);
+        } else {
+            // Fallback for any other stable-image models
+            $apiurl = rtrim($baseurl, '/') . '/v2beta/stable-image/generate';
+            aiimage_log('Using v2beta generic Stable Image endpoint for model: ' . $model);
+        }
+    } else if (strpos($model, 'stable-diffusion-3') === 0) {
+        // Use v2beta endpoint for SD3 models
+        $apiurl = rtrim($baseurl, '/') . '/v2beta/stable-image/generate/sd3';
+        aiimage_log('Using v2beta SD3 endpoint for model: ' . $model);
+    } else {
+        // Use the legacy v1 endpoint for older models
+        $apiurl = rtrim($baseurl, '/') . '/v1/generation/' . $model . '/text-to-image';
+        aiimage_log('Using v1 legacy endpoint for model: ' . $model);
+    }
     
     // Set up the API request payload
-    $payload = json_encode([
-        'text_prompts' => [
-            [
+    $payload = array(
+        'text_prompts' => array(
+            array(
                 'text' => $prompt,
                 'weight' => 1
-            ]
-        ],
+            )
+        ),
         'height' => $height,
         'width' => $width,
         'samples' => 1,
         'cfg_scale' => 7,
         'steps' => 30,
-    ]);
+    );
+    
+    // For newer models, adjust the payload structure if needed
+    if (strpos($model, 'stable-image-') === 0 || strpos($model, 'stable-diffusion-3') === 0) {
+        // Add model specification for v2beta endpoints
+        $payload['model'] = $model;
+        
+        // Adjust any other parameters that might be different in v2beta API
+        if (isset($payload['steps'])) {
+            $payload['steps'] = min($payload['steps'], 50); // Ensure steps is within allowed range for v2beta
+        }
+    }
     
     $curl = new curl();
-    $curl->setopt(array(
-        'CURLOPT_RETURNTRANSFER' => true,
-        'CURLOPT_TIMEOUT' => $timeout,
-        'CURLOPT_SSL_VERIFYPEER' => true,
-        'CURLOPT_HTTPHEADER' => array(
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'Authorization: Bearer ' . $apikey
-        )
-    ));
     
-    $response = $curl->post($apiurl, $payload);
+    // Set up different request formats based on the API version
+    if (strpos($model, 'stable-image-') === 0 || strpos($model, 'stable-diffusion-3') === 0) {
+        // v2beta API requires multipart/form-data format
+        aiimage_log('Using multipart/form-data format for v2beta API');
+        
+        // Map our model names to the expected format for the API
+        $api_model = $model;
+        if (strpos($model, 'stable-diffusion-3') === 0) {
+            // Convert model format: 'stable-diffusion-3.5-medium' -> 'sd3.5-medium'
+            $api_model = str_replace('stable-diffusion-', 'sd', $model);
+            aiimage_log('Mapped model name for API: ' . $model . ' -> ' . $api_model);
+        }
+        
+        // Convert the nested prompt structure to the format expected by the v2beta API
+        $formdata = array(
+            'prompt' => $prompt,  // API expects 'prompt' not 'text_prompts[0][text]'
+            'height' => $height,
+            'width' => $width,
+            'samples' => 1,
+            'cfg_scale' => 7,
+            'steps' => min(30, 50),
+            'model' => $api_model,
+            'aspect_ratio' => $api_aspect_ratio  // Use the correct API aspect ratio value
+        );
+        
+        aiimage_log('Prepared form data for v2beta API', $formdata);
+        
+        // For multipart/form-data, we don't set a Content-Type header
+        // as curl will set it automatically with the boundary
+        $curl->setopt(array(
+            'CURLOPT_RETURNTRANSFER' => true,
+            'CURLOPT_TIMEOUT' => $timeout,
+            'CURLOPT_SSL_VERIFYPEER' => true,
+            'CURLOPT_HTTPHEADER' => array(
+                'Accept: image/*',  // Request direct image response, not JSON
+                'Authorization: Bearer ' . $apikey
+            )
+        ));
+        
+        // Use the standard post method with the form data
+        $response = $curl->post($apiurl, $formdata);
+        
+        aiimage_log('Sent multipart request', [
+            'url' => $apiurl,
+            'formdata_keys' => array_keys($formdata)
+        ]);
+        
+        // For v2beta direct image response (based on Accept: image/* header)
+        $info = $curl->get_info();
+        $httpcode = $info['http_code'];
+        if ($httpcode == 200) {
+            // The response is the raw image data, not JSON
+            $imagedata = $response;
+            aiimage_log('Got raw image data from v2beta API');
+        } else {
+            // Error responses are still in JSON format
+            $result->error = "Error generating image: HTTP $httpcode - $response";
+            aiimage_log('Image generation failed', ['error' => $result->error]);
+            echo json_encode($result);
+            die;
+        }
+    } else {
+        // Legacy v1 API uses JSON format
+        aiimage_log('Using JSON format for v1 API');
+        $payloadJson = json_encode($payload);
+        
+        $curl->setopt(array(
+            'CURLOPT_RETURNTRANSFER' => true,
+            'CURLOPT_TIMEOUT' => $timeout,
+            'CURLOPT_SSL_VERIFYPEER' => true,
+            'CURLOPT_HTTPHEADER' => array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                'Authorization: Bearer ' . $apikey
+            )
+        ));
+        
+        $response = $curl->post($apiurl, $payloadJson);
+    }
+    
     $info = $curl->get_info();
     $httpcode = $info['http_code'];
     
     aiimage_log('Image generation response', ['http_code' => $httpcode]);
     
-    if ($httpcode == 200) {
-        $data = json_decode($response);
-        
-        // Check if the response is valid
-        if (is_object($data) && isset($data->artifacts) && is_array($data->artifacts)) {
-            // Get the first generated image
-            $image = $data->artifacts[0];
+    // For the v2beta API, we've already handled the response above
+    // For v1 API, we need to parse the JSON response
+    if (!isset($imagedata)) {
+        if ($httpcode == 200) {
+            $data = json_decode($response);
             
-            if (isset($image->base64) && !empty($image->base64)) {
-                // Got the image, now save it to Moodle files
-                $imagedata = base64_decode($image->base64);
+            // Check if the response is valid for v1 API
+            if (is_object($data) && isset($data->artifacts) && is_array($data->artifacts)) {
+                // v1 API format - handle as before
+                $image = $data->artifacts[0];
                 
-                if ($imagedata) {
-                    // Generate a unique filename
-                    $filename = 'aiimage_' . time() . '.png';
+                if (isset($image->base64) && !empty($image->base64)) {
+                    // Got the image, now decode base64
+                    $imagedata = base64_decode($image->base64);
                     
-                    // Create a temp file to add the watermark
-                    $tempfile = tempnam(sys_get_temp_dir(), 'atto_aiimage_');
-                    file_put_contents($tempfile, $imagedata);
-                    
-                    // Add the watermark
-                    $watermarked = add_watermark($tempfile);
-                    
-                    if ($watermarked) {
-                        // Save to Moodle files
-                        $fs = get_file_storage();
-                        
-                        // Prepare file record
-                        $fileinfo = array(
-                            'contextid' => $context->id,
-                            'component' => 'atto_aiimage',
-                            'filearea' => 'aiimagecontent',
-                            'itemid' => time(),
-                            'filepath' => '/',
-                            'filename' => $filename,
-                            'timecreated' => time(),
-                            'timemodified' => time()
-                        );
-                        
-                        // Create the file
-                        $file = $fs->create_file_from_pathname($fileinfo, $watermarked);
-                        
-                        // Clean up temp file
-                        @unlink($tempfile);
-                        @unlink($watermarked);
-                        
-                        // Create the image URL
-                        $imageurl = moodle_url::make_pluginfile_url(
-                            $file->get_contextid(),
-                            $file->get_component(),
-                            $file->get_filearea(),
-                            $file->get_itemid(),
-                            $file->get_filepath(),
-                            $file->get_filename(),
-                            false
-                        );
-                        
-                        // Prepare the HTML for insertion into the editor
-                        // Replace quotes with single quotes and escape properly for HTML attribute
-                        $prompt_sanitized = str_replace('"', "'", s($prompt));
-                        $alt = 'AI generated image of ' . $prompt_sanitized . ' created with Stability.ai';
-                        $imagehtml = '<img src="' . $imageurl . '" alt="' . $alt . '" class="img-fluid atto-aiimage-generated">';
-                        
-                        $result->success = true;
-                        $result->content = $imagehtml;
-                        
-                        aiimage_log('Image successfully generated and stored');
-                    } else {
-                        $result->error = 'Failed to add watermark to image';
-                        aiimage_log('Failed to add watermark');
-                    }
+                    aiimage_log('Got image from v1 API');
                 } else {
-                    $result->error = 'Failed to decode image data';
-                    aiimage_log('Failed to decode base64 image data');
+                    $result->error = 'No image data in the v1 API response';
+                    aiimage_log('No image data in v1 response', ['response' => $response]);
                 }
             } else {
-                $result->error = 'No image data in the response';
-                aiimage_log('No image data in response', ['response' => $response]);
+                $result->error = 'Invalid response format from Stability AI API';
+                aiimage_log('Invalid response format - Not a valid v1 format', ['response' => $response]);
             }
         } else {
-            $result->error = 'Invalid response from Stability AI API';
-            aiimage_log('Invalid image generation response format', ['response' => $response]);
+            // Parse error message from response
+            $error = $response;
+            $jsonerror = json_decode($response);
+            if (is_object($jsonerror) && isset($jsonerror->message)) {
+                $error = $jsonerror->message;
+            }
+            
+            $result->error = "Error generating image: HTTP $httpcode - $error";
+            aiimage_log('Image generation failed', ['error' => $result->error]);
+            echo json_encode($result);
+            die;
         }
-    } else {
-        // Parse error message from response
-        $error = $response;
-        $jsonerror = json_decode($response);
-        if (is_object($jsonerror) && isset($jsonerror->message)) {
-            $error = $jsonerror->message;
-        }
+    }
+    
+    // Common image processing code for both API versions
+    if (isset($imagedata) && $imagedata) {
+        // Generate a unique filename
+        $filename = 'aiimage_' . time() . '.png';
         
-        $result->error = "Error generating image: HTTP $httpcode - $error";
-        aiimage_log('Image generation failed', ['error' => $result->error]);
+        // Create a temp file to add the watermark
+        $tempfile = tempnam(sys_get_temp_dir(), 'atto_aiimage_');
+        file_put_contents($tempfile, $imagedata);
+        
+        // Add the watermark
+        $watermarked = add_watermark($tempfile);
+        
+        if ($watermarked) {
+            // Save to Moodle files
+            $fs = get_file_storage();
+            
+            // Prepare file record
+            $fileinfo = array(
+                'contextid' => $context->id,
+                'component' => 'atto_aiimage',
+                'filearea' => 'aiimagecontent',
+                'itemid' => time(),
+                'filepath' => '/',
+                'filename' => $filename,
+                'timecreated' => time(),
+                'timemodified' => time()
+            );
+            
+            // Create the file
+            $file = $fs->create_file_from_pathname($fileinfo, $watermarked);
+            
+            // Clean up temp file
+            @unlink($tempfile);
+            @unlink($watermarked);
+            
+            // Create the image URL
+            $imageurl = moodle_url::make_pluginfile_url(
+                $file->get_contextid(),
+                $file->get_component(),
+                $file->get_filearea(),
+                $file->get_itemid(),
+                $file->get_filepath(),
+                $file->get_filename(),
+                false
+            );
+            
+            // Prepare the HTML for insertion into the editor
+            // Replace quotes with single quotes and escape properly for HTML attribute
+            $prompt_sanitized = str_replace('"', "'", s($prompt));
+            $alt = 'AI generated image of ' . $prompt_sanitized . ' created with Stability.ai';
+            $imagehtml = '<img src="' . $imageurl . '" alt="' . $alt . '" class="img-fluid atto-aiimage-generated">';
+            
+            $result->success = true;
+            $result->content = $imagehtml;
+            
+            aiimage_log('Image successfully generated and stored');
+        } else {
+            $result->error = 'Failed to add watermark to image';
+            aiimage_log('Failed to add watermark');
+        }
     }
     
     echo json_encode($result);

@@ -27,9 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 // Add JavaScript for test connection button - make sure we load it after page is ready
 $PAGE->requires->js_call_amd('atto_aiimage/settings', 'init', array());
 
-$ADMIN->add('editoratto', new admin_category('atto_aiimage', new lang_string('pluginname', 'atto_aiimage')));
+// Create settings page - use unique ID to avoid conflicts
+$settings = new admin_settingpage('atto_aiimage_settings', get_string('pluginname', 'atto_aiimage'));
 
-$settings = new admin_settingpage('atto_aiimage_settings', new lang_string('settings', 'atto_aiimage'));
 if ($ADMIN->fulltree) {
     // API Key setting
     $settings->add(new admin_setting_configpasswordunmask(
@@ -41,10 +41,16 @@ if ($ADMIN->fulltree) {
     
     // Available Stability.ai models
     $models = array(
+        'stable-image-ultra' => 'Stable Image Ultra',
+        'stable-image-core' => 'Stable Image Core',
+        'stable-diffusion-3.5-large' => 'Stable Diffusion 3.5 Large',
+        'stable-diffusion-3.5-medium' => 'Stable Diffusion 3.5 Medium',
+        'stable-diffusion-3.5-large-turbo' => 'Stable Diffusion 3.5 Large Turbo',
+        'stable-diffusion-3-medium' => 'Stable Diffusion 3 Medium',
         'stable-diffusion-xl-1024-v1-0' => 'Stable Diffusion XL 1.0',
         'stable-diffusion-v1-6' => 'Stable Diffusion 1.6',
-        'stable-diffusion-512-v2-1' => 'Stable Diffusion 2.1',
-        'esrgan-v1-x2plus' => 'ESRGAN v1 x2Plus'
+        'sdxl-turbo' => 'SDXL Turbo',
+        'sd-turbo' => 'SD Turbo'
     );
     
     // Model selection setting
@@ -52,7 +58,7 @@ if ($ADMIN->fulltree) {
         'atto_aiimage/model',
         new lang_string('model', 'atto_aiimage'),
         new lang_string('model_desc', 'atto_aiimage'),
-        'stable-diffusion-xl-1024-v1-0',
+        'stable-diffusion-3.5-medium',
         $models
     ));
     
@@ -90,4 +96,8 @@ if ($ADMIN->fulltree) {
         get_string('testconnectionheading', 'atto_aiimage'), $testconnectionhtml));
 }
 
-$ADMIN->add('editoratto', $settings); 
+// Add settings page to editor atto category
+$ADMIN->add('editoratto', $settings);
+
+// Prevent duplicate settings when core_admin searches for module settings
+unset($settings); 
