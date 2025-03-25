@@ -1,0 +1,1 @@
+YUI.add("moodle-atto_aiimage-settings",function(e,t){M.atto_aiimage=M.atto_aiimage||{},M.atto_aiimage.settings={hasapikey:!1,model:"",baseurl:"",timeout:30,contextid:0}},"@VERSION@",{requires:[]}); 

@@ -1,0 +1,67 @@
+/**
+ * Atto AI Image styles.
+ *
+ * @package    atto_aiimage
+ * @copyright  2025 CHURCHx
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* Dialog styling */
+.atto_aiimage_processing {
+    text-align: center;
+    padding: 20px;
+}
+
+.atto_aiimage_processing .spinner {
+    margin-right: 10px;
+}
+
+.atto_aiimage_processing .processing-text {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 1.2em;
+}
+
+/* Generated image styling */
+img.atto-aiimage-generated {
+    display: block;
+    max-width: 100%;
+    margin: 10px 0;
+}
+
+/* Form styling */
+textarea.atto_aiimage_prompt {
+    width: 100%; 
+    min-height: 100px;
+}
+
+/* Add a bit more spacing in the aspect ratio section */
+.atto_form .form-check {
+    margin-bottom: 8px;
+}
+
+/* Button spacing */
+.atto_aiimage_submit {
+    margin-left: 10px;
+}
+
+/* Test connection button styling */
+#atto_aiimage_connection_result {
+    display: inline-block;
+    margin-left: 10px;
+    font-weight: bold;
+}
+
+#atto_aiimage_connection_details {
+    margin-top: 15px;
+}
+
+/* Dialog animation */
+.atto_aiimage_processing {
+    animation: fadein 0.3s;
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+} 

@@ -1,0 +1,8 @@
+{
+    "moodle-atto_aiimage-button": {
+        "requires": [
+            "moodle-editor_atto-plugin",
+            "moodle-core-notification-dialogue"
+        ]
+    }
+} 

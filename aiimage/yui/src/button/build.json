@@ -1,0 +1,10 @@
+{
+    "name": "moodle-atto_aiimage-button",
+    "builds": {
+        "moodle-atto_aiimage-button": {
+            "jsfiles": [
+                "button.js"
+            ]
+        }
+    }
+} 
